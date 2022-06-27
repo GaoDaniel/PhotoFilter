@@ -23,12 +23,37 @@ export default function ImagePickerExample() {
       return;
     }
     setImage({localUri: pickerResult.uri});
+    console.log(image);
+  }
+
+  let openCamera = async () => {
+    let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera is required!");
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if(result.cancelled == true){
+      return;
+    }
+    setImage({localUri: result.uri});
+    console.log(image);
   }
   
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
         <Text style={styles.buttonText}>Pick a photo</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={openCamera} style={styles.button}>
+        <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image.localUri }} style={styles.image} />}
     </View>
