@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Image, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import PixelColor from 'react-native-pixel-color';
+import imageToRgbaMatrix from 'image-to-rgba-matrix';
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState(null);
@@ -8,7 +10,7 @@ export default function ImagePickerExample() {
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
   
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
@@ -19,9 +21,10 @@ export default function ImagePickerExample() {
       aspect: [4, 3],
       quality: 1,
     });
-    if(pickerResult.cancelled == true){
+    if(pickerResult.cancelled){
       return;
     }
+
     setImage({localUri: pickerResult.uri});
     console.log(image);
   }
@@ -29,7 +32,7 @@ export default function ImagePickerExample() {
   let openCamera = async () => {
     let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera is required!");
       return;
     }
@@ -40,13 +43,65 @@ export default function ImagePickerExample() {
       aspect: [4, 3],
       quality: 1,
     });
-    if(result.cancelled == true){
+    if(result.cancelled){
       return;
     }
     setImage({localUri: result.uri});
     console.log(image);
   }
-  
+
+  function displayMatrix() {
+    console.log(image.localUri);
+
+    imageToRgbaMatrix(image.localUri).then(console.log);
+
+    // console.log(typeof(image.localUri));
+    // for (let i = 0; i < 10; i++){
+    //   for (let j = 0; j < 10; j++){
+    //     PixelColor.getHex(image.localUri, {x:1, y:2}).then((color) => {
+    //       console.log(color);
+    //     }).catch((err: Error) => {
+    //       console.log("file not found: " + err);
+    //     });
+    //   }
+    // }
+
+    // const img = new Image({source: image.localUri});
+    // const w = image.width;
+    // const h = image.height;
+    //
+    // console.log(w + " " + h);
+    //
+    // const canvas = document.createElement('canvas');
+    // canvas.width = w;
+    // canvas.height = h;
+    //
+    // const ctx = canvas.getContext('2d');
+    // if (ctx != null) {
+    //   ctx.drawImage(image, 0, 0);
+    //   const data = ctx.getImageData(0, 0, w, h);
+    //   return getPixels(data);
+    // }
+    // return <Text/>;
+
+  }
+
+  function getPixels(imgData: ImageData) {
+    // get colors rgba (4 pix sequentially)
+    let count = 1;
+    let msg = '';
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      msg += "\npixel red " + count + ": " + imgData.data[i];
+      msg += "\npixel green " + count + ": " + imgData.data[i+1];
+      msg += "\npixel blue " + count + ": " + imgData.data[i+2];
+      msg += "\npixel alpha " + count + ": " + imgData.data[i+3] + "\n";
+      count++;
+    }
+    return (
+        <Text>{msg}</Text>
+    );
+  }
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
@@ -56,6 +111,7 @@ export default function ImagePickerExample() {
         <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image.localUri }} style={styles.image} />}
+      {image && displayMatrix()}
     </View>
   );
 }
