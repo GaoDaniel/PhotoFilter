@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { Image, View, TouchableOpacity, StyleSheet, Text, NativeModules } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function ImagePickerExample() {
@@ -18,12 +18,14 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
+      base64: true,
     });
     if(pickerResult.cancelled == true){
       return;
     }
     setImage({localUri: pickerResult.uri});
     console.log(image);
+    console.log(pickerResult.base64);
   }
 
   let openCamera = async () => {
@@ -39,13 +41,26 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
+      base64: true,
     });
     if(result.cancelled == true){
       return;
     }
     setImage({localUri: result.uri});
     console.log(image);
+    console.log(result.base64);
+    console.log(_base64ToArrayBuffer(result.base64));
   }
+
+  function _base64ToArrayBuffer(base64: string) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
   
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
