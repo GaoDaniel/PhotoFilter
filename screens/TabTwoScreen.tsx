@@ -49,7 +49,7 @@ export default function ImagePickerExample() {
     setImage({localUri: result.uri});
     console.log(image);
     console.log(result.base64);
-    console.log(_base64ToArrayBuffer(result.base64));
+    console.log('Height: ' + result.height + ' Width: ' + result.width);
   }
 
   function _base64ToArrayBuffer(base64: string) {
@@ -57,11 +57,11 @@ export default function ImagePickerExample() {
     var len = binary_string.length;
     var bytes = new Uint8Array(len);
     for (var i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
+      bytes[i] = binary_string.charCodeAt(i);
     }
-    return bytes.buffer;
-}
-  
+    return bytes;
+  }
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
@@ -71,6 +71,7 @@ export default function ImagePickerExample() {
         <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image.localUri }} style={styles.image} />}
+      <img id='picture' width="600" height="300" src="http://placeimg.com/1200/800/animals" />
     </View>
   );
 }
