@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Image, View, TouchableOpacity, StyleSheet, Text, NativeModules } from 'react-native';
+import React, { useState } from 'react';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function ImagePickerExample() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
+  const [data, setData] = useState<Uint8ClampedArray | null>(null);
 
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
   
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
@@ -18,20 +19,19 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-      base64: true,
     });
-    if(pickerResult.cancelled == true){
+    if(pickerResult.cancelled){
       return;
     }
-    setImage({localUri: pickerResult.uri});
+
+    setImage(pickerResult);
     console.log(image);
-    console.log(pickerResult.base64);
   }
 
   let openCamera = async () => {
     let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera is required!");
       return;
     }
@@ -41,27 +41,34 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-      base64: true,
     });
-    if(result.cancelled == true){
+    if(result.cancelled){
       return;
     }
-    setImage({localUri: result.uri});
+    setImage(result);
     console.log(image);
-    console.log(result.base64);
-    console.log(_base64ToArrayBuffer(result.base64));
   }
 
-  function _base64ToArrayBuffer(base64: string) {
-    var binary_string = window.atob(base64);
-    var len = binary_string.length;
-    var bytes = new Uint8Array(len);
-    for (var i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
-  
+  function displayMatrix() {
+    const w = image.width;
+    const h = image.height;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext("2d");
+    const img = document.createElement('img');
+    img.src = image.uri;
+    img.onload = () => {
+      ctx.fillStyle = "red";
+      ctx.drawImage(img, 0, 0, w, h);
+      ctx.fillRect(10, 10, 500, 500);
+      const data = ctx.getImageData(0, 0, w, h);
+      setData(data.data);
+    };
+  }
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
@@ -70,7 +77,9 @@ export default function ImagePickerExample() {
       <TouchableOpacity onPress={openCamera} style={styles.button}>
         <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
-      {image && <Image source={{ uri: image.localUri }} style={styles.image} />}
+      {image && <Image source={{ uri: image.uri }} style={styles.image} />}
+      {image && displayMatrix()}
+      <Image source={require("../test-image.png")} style={styles.image} />
     </View>
   );
 }
