@@ -34,6 +34,7 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-native": "^0.69.0",
+    "react-native-get-pixel": "^0.0.5",
     "react-native-image-picker": "^4.8.4",
     "react-native-pixel-color": "^0.0.5",
     "react-native-safe-area-context": "4.2.4",

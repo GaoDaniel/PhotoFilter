@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Image, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import PixelColor from 'react-native-pixel-color';
-import imageToRgbaMatrix from 'image-to-rgba-matrix';
 
 export default function ImagePickerExample() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
+  const [data, setData] = useState<Uint8ClampedArray | null>(null);
 
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -25,7 +24,7 @@ export default function ImagePickerExample() {
       return;
     }
 
-    setImage({localUri: pickerResult.uri});
+    setImage(pickerResult);
     console.log(image);
   }
 
@@ -46,60 +45,28 @@ export default function ImagePickerExample() {
     if(result.cancelled){
       return;
     }
-    setImage({localUri: result.uri});
+    setImage(result);
     console.log(image);
   }
 
   function displayMatrix() {
-    console.log(image.localUri);
+    const w = image.width;
+    const h = image.height;
 
-    imageToRgbaMatrix(image.localUri).then(console.log);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
 
-    // console.log(typeof(image.localUri));
-    // for (let i = 0; i < 10; i++){
-    //   for (let j = 0; j < 10; j++){
-    //     PixelColor.getHex(image.localUri, {x:1, y:2}).then((color) => {
-    //       console.log(color);
-    //     }).catch((err: Error) => {
-    //       console.log("file not found: " + err);
-    //     });
-    //   }
-    // }
-
-    // const img = new Image({source: image.localUri});
-    // const w = image.width;
-    // const h = image.height;
-    //
-    // console.log(w + " " + h);
-    //
-    // const canvas = document.createElement('canvas');
-    // canvas.width = w;
-    // canvas.height = h;
-    //
-    // const ctx = canvas.getContext('2d');
-    // if (ctx != null) {
-    //   ctx.drawImage(image, 0, 0);
-    //   const data = ctx.getImageData(0, 0, w, h);
-    //   return getPixels(data);
-    // }
-    // return <Text/>;
-
-  }
-
-  function getPixels(imgData: ImageData) {
-    // get colors rgba (4 pix sequentially)
-    let count = 1;
-    let msg = '';
-    for (let i = 0; i < imgData.data.length; i += 4) {
-      msg += "\npixel red " + count + ": " + imgData.data[i];
-      msg += "\npixel green " + count + ": " + imgData.data[i+1];
-      msg += "\npixel blue " + count + ": " + imgData.data[i+2];
-      msg += "\npixel alpha " + count + ": " + imgData.data[i+3] + "\n";
-      count++;
-    }
-    return (
-        <Text>{msg}</Text>
-    );
+    const ctx = canvas.getContext("2d");
+    const img = document.createElement('img');
+    img.src = image.uri;
+    img.onload = () => {
+      ctx.fillStyle = "red";
+      ctx.drawImage(img, 0, 0, w, h);
+      ctx.fillRect(10, 10, 500, 500);
+      const data = ctx.getImageData(0, 0, w, h);
+      setData(data.data);
+    };
   }
 
   return (
@@ -110,8 +77,9 @@ export default function ImagePickerExample() {
       <TouchableOpacity onPress={openCamera} style={styles.button}>
         <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
-      {image && <Image source={{ uri: image.localUri }} style={styles.image} />}
+      {image && <Image source={{ uri: image.uri }} style={styles.image} />}
       {image && displayMatrix()}
+      <Image source={require("../test-image.png")} style={styles.image} />
     </View>
   );
 }
