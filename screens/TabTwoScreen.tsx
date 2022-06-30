@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
   const [data, setData] = useState<Uint8ClampedArray | null>(null);
+  const [imageData, setImageData] = useState<ImageData | null>(null);
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext("2d");
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [context, setContext] = React.useState<CanvasRenderingContext2D | null>(null);
 
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -53,12 +59,11 @@ export default function ImagePickerExample() {
     const w = image.width;
     const h = image.height;
 
-    const canvas = document.createElement('canvas');
+    
     canvas.width = w;
     canvas.height = h;
     console.log(w + ' ' + h);
 
-    const ctx = canvas.getContext("2d");
     const img = document.createElement('img');
     img.src = image.uri;
     img.onload = () => {
@@ -67,11 +72,26 @@ export default function ImagePickerExample() {
       ctx.fillRect(10, 10, 500, 500);
       const tempData = ctx.getImageData(0, 0, w, h);
       setData(tempData.data);
+      setImageData(tempData);
       console.log(tempData);
     };
   }
 
+  function backToImage() {
+    if (canvasRef.current) {
+      const renderCtx = canvasRef.current.getContext('2d');
+
+      if (renderCtx) {
+        setContext(renderCtx);
+      }
+    }
+    if(image && imageData){
+      context?.putImageData(imageData, 0, 0);
+    }
+  }
+
   return (
+    <View style={styles.container}>
     < ScrollView>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
         <Text style={styles.buttonText}>Pick a photo</Text>
@@ -79,11 +99,27 @@ export default function ImagePickerExample() {
       <TouchableOpacity onPress={openCamera} style={styles.button}>
         <Text style={styles.buttonText}>Take a photo</Text>
       </TouchableOpacity>
-      {image && <Image source={{ uri: image.uri }} style={styles.image} />}
       <TouchableOpacity onPress={displayMatrix} style={styles.button}>
         <Text style={styles.buttonText}>Display Matrix</Text>
       </TouchableOpacity>
+      <TouchableOpacity onPress={backToImage} style={styles.button}>
+        <Text style={styles.buttonText}>Back to Image</Text>
+      </TouchableOpacity>
+      {image && <Image source={{ uri: image.uri }} style={styles.image} />}
+      <div>
+      <canvas
+        id="canvas"
+        ref={canvasRef}
+        width={image?.width}
+        height={image?.height}
+        style={{
+          border: '2px solid #000',
+          marginTop: 10,
+        }}
+      ></canvas>
+      </div>
     </ScrollView>
+    </View>
   );
 }
 const styles = StyleSheet.create({
