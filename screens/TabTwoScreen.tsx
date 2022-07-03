@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
@@ -10,6 +11,15 @@ export default function ImagePickerExample() {
   const ctx = canvas.getContext("2d");
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [context, setContext] = React.useState<CanvasRenderingContext2D | null>(null);
+
+  // Dropdown things
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(null);
+  const [items, setItems] = useState([
+    {label: 'Filter1', value: 'filter1'},
+    {label: 'Filter2', value: 'filter2'}
+  ]);
+  const [filter, setFilter] = useState('');
 
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -121,6 +131,20 @@ export default function ImagePickerExample() {
               </ScrollView>
             </ScrollView>
           </View>
+          <DropDownPicker
+            open={open}
+            multiple={false}
+            value={value}
+            items={items}
+            setOpen={setOpen}
+            setValue={setValue}
+            setItems={setItems}
+            style={styles.button}
+            textStyle={styles.dropText}
+          />
+          <Text>
+            Currently selected filter = {value}
+          </Text>
         </ScrollView>
       </ScrollView>
 
@@ -130,7 +154,7 @@ export default function ImagePickerExample() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'pink',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -161,5 +185,10 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     resizeMode: "contain",
-  }
+  },
+  dropText: {
+    fontSize: 20,
+    color: 'white',
+    backgroundColor: 'blue'
+  }, 
 });
