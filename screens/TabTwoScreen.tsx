@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
+import Emoji from '../tools/Emoji'
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
@@ -20,6 +21,25 @@ export default function ImagePickerExample() {
     {label: 'Filter2', value: 'filter2'}
   ]);
   const [filter, setFilter] = useState('');
+
+  // map of color to emoji
+  let map = new Map();
+  map.set([255, 255, 255], <Emoji symbol={0x1F47A} label={'ghost'}/>); // white
+  map.set([255, 255, 0], <Emoji symbol={0x1F600} label={'grinning face'}/>); // yellow
+  map.set([192, 192, 192], <Emoji symbol={0x1F418} label={'elephant'}/>); // light gray
+  map.set([0, 255, 255], <Emoji symbol={0x1F976} label={'cold face'}/>); // sky blue
+  map.set([0, 255, 0], <Emoji symbol={0x1F438} label={'frog'}/>); // yellow green
+  map.set([128, 128, 128], <Emoji symbol={0x1F311} label={'new moon'}/>); // gray
+  map.set([128, 128, 0], <Emoji symbol={0x1F36F} label={'honey'}/>); // dark yellow
+  map.set([255, 0, 255], <Emoji symbol={0x1F338} label={'cherry blossom'}/>); // dark pink
+  map.set([0, 128, 128], <Emoji symbol={0x1F30E} label={'globe showing Americas'}/>); // blue green
+  map.set([255, 0, 0], <Emoji symbol={0x1F975} label={'hot face'}/>); // red
+  map.set([0, 128, 0], <Emoji symbol={0x1F922} label={'nauseated face'}/>); // green
+  map.set([128, 0, 128], <Emoji symbol={0x1F47F} label={'angry face with horns'}/>); // purple
+  map.set([128, 0, 0], <Emoji symbol={0x1F4A9} label={'pile of poo'}/>); // brown
+  map.set([0, 0, 255], <Emoji symbol={0x1F6BE} label={'water closet'}/>); // blue
+  map.set([0, 0, 128], <Emoji symbol={0x1F456} label={'jeans'}/>); // dark blue
+  map.set([0, 0, 0], <Emoji symbol={0x1F4A3} label={'bomb'}/>); // black
 
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -100,6 +120,32 @@ export default function ImagePickerExample() {
     }
   }
 
+  function emojifyImage(){
+    let list: any[] = [];
+    console.log("emojify clicked");
+    if (imageData){
+      for (let i = 0; i < imageData.data.length; i+=4){
+        // naive way to find closest color
+        let smallestVal = 255*3;
+        let emoji;
+        for (let [key, value] of map) {
+          let tempVal = Math.abs(imageData.data[i] - key[0]) + Math.abs(imageData.data[i+1] - key[1]) + Math.abs(imageData.data[i+2] - key[2]);
+          if (tempVal < smallestVal){
+            smallestVal = tempVal;
+            emoji = value;
+          }
+        }
+        if ((i/4+1)%(imageData.width) !== 0){
+          list.push(<div style={{float: "left"}}>{emoji}</div>);
+        } else {
+          list.push(<div style={{float: "right"}}>{emoji}</div>);
+        }
+      }
+      console.log(list);
+    }
+    return list;
+  }
+
   // equivalent of componentDidUpdate()
   // updates image in our canvas (used to be Back To Image)
   useEffect(() => {
@@ -133,7 +179,7 @@ export default function ImagePickerExample() {
             <Text style={styles.buttonText}>Filter</Text>
           </TouchableOpacity>
           {image && <Image source={{ uri: image.uri }} style={styles.image} />}
-          <View style={{height: 500, width: 500}}>
+          <View style={{width: 500}}>
             <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
               <ScrollView horizontal={true} maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
                 <div>
@@ -148,6 +194,21 @@ export default function ImagePickerExample() {
                       }}
                   />
                 </div>
+              </ScrollView>
+            </ScrollView>
+          </View>
+          <View style={{width: 500}}>
+            <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
+              <ScrollView horizontal={true} maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
+                <View style={{
+                  flexDirection:'row',
+                  justifyContent: 'flex-start',
+                  alignItems: 'flex-start',
+                  direction: 'inherit',
+                  flexWrap: 'wrap',
+                  width: imageData?.width*23,}}>
+                  {emojifyImage()}
+                </View>
               </ScrollView>
             </ScrollView>
           </View>
