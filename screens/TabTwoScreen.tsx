@@ -83,7 +83,27 @@ export default function ImagePickerExample() {
     }
   }
 
-  function backToImage() {
+  function invertImage(){
+    if (imageData){
+      let newData = new Uint8ClampedArray(imageData.data.length);
+      for (let i = 0; i < imageData.data.length; i+=4){
+        newData[i] = 255 - imageData.data[i];
+        newData[i+1] = 255 - imageData.data[i+1];
+        newData[i+2] = 255 - imageData.data[i+2];
+        // keep the A opacity value the same
+        newData[i+3] = imageData.data[i+3];
+      }
+      let newImage = new ImageData(newData, imageData.width, imageData.height);
+      setImageData(newImage);
+      console.log(newImage);
+
+    }
+  }
+
+  // equivalent of componentDidUpdate()
+  // updates image in our canvas (used to be Back To Image)
+  useEffect(() => {
+    console.log("useEffect called");
     if (canvasRef.current) {
       const renderCtx = canvasRef.current.getContext('2d');
 
@@ -94,7 +114,7 @@ export default function ImagePickerExample() {
     if(image && imageData){
       context?.putImageData(imageData, 0, 0);
     }
-  }
+  }, [imageData]);
 
   return (
     <View style={styles.container}>
@@ -109,8 +129,8 @@ export default function ImagePickerExample() {
           <TouchableOpacity onPress={getMatrix} style={styles.button}>
             <Text style={styles.buttonText}>Display Matrix</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={backToImage} style={styles.button}>
-            <Text style={styles.buttonText}>Back to Image</Text>
+          <TouchableOpacity onPress={invertImage} style={styles.button}>
+            <Text style={styles.buttonText}>Filter</Text>
           </TouchableOpacity>
           {image && <Image source={{ uri: image.uri }} style={styles.image} />}
           <View style={{height: 500, width: 500}}>
