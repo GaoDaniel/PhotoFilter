@@ -3,6 +3,8 @@ import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, Sc
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji'
+import dataUriToBuffer from 'data-uri-to-buffer';
+import Jimp from 'jimp';
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
@@ -58,6 +60,8 @@ export default function ImagePickerExample() {
     if(!pickerResult.cancelled){
       setImage(pickerResult);
       console.log(image);
+      console.log(image?.uri);
+      //console.log(dataUriToBuffer(image?.uri).toString);
     }
   }
 
@@ -81,25 +85,44 @@ export default function ImagePickerExample() {
     }
   }
 
-  function getMatrix() {
+  const readImage = (imageSrc: any) => {
+    return Jimp.read(imageSrc);
+  }
+  
+  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; }; width: any; height: any; }; scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
+    const rgbaMatrix: any[] = [];
+  
+    const pixelHandler = (x: number, y: number, idx: number) => {
+      var green = jimpImage.bitmap.data[ idx + 1 ];
+      var red   = jimpImage.bitmap.data[ idx + 0 ];
+      var blue  = jimpImage.bitmap.data[ idx + 2 ];
+      var alpha = jimpImage.bitmap.data[ idx + 3 ];
+      
+      if (!rgbaMatrix[y]) {
+        rgbaMatrix[y] = []
+      }
+      
+      rgbaMatrix[y][x] = [red, green, blue, alpha];
+      
+    }
+    jimpImage.scan(
+      0,
+      0,
+      jimpImage.bitmap.width,
+      jimpImage.bitmap.height,
+      pixelHandler.bind(this)
+    );
+    console.log(rgbaMatrix);
+    return rgbaMatrix
+  }
+  
+  const imageToRgbaMatrix = (imageSrc: any) => {
+    return readImage(imageSrc)
+      .then(scanToRgbaMatrix);
+  }
+  async function getMatrix() {
     if (image) {
-      const w = image.width;
-      const h = image.height;
-
-      canvas.width = w;
-      canvas.height = h;
-      console.log(w + ' ' + h);
-
-      const img = document.createElement('img');
-      img.src = image.uri;
-      img.onload = () => {
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, w, h);
-          const tempData = ctx.getImageData(0, 0, w, h);
-          setImageData(tempData);
-          console.log(tempData);
-        }
-      };
+      imageToRgbaMatrix(dataUriToBuffer(image.uri))
     }
   }
 

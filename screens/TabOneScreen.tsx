@@ -2,8 +2,10 @@ import * as React from 'react';
 import {useState}  from 'react';
 import {StyleSheet, SafeAreaView, View, Image, ScrollView} from 'react-native';
 import {Camera, CameraPermissionStatus, useCameraDevices} from 'react-native-vision-camera';
+import { Text } from '../components/Themed';
 
 export default function TabOneScreen() {
+  /*
   const devices = useCameraDevices();
   const device = devices.back;
   const [active, setActive] = useState(false);
@@ -16,16 +18,12 @@ export default function TabOneScreen() {
     }
     setActive(true);
   }
-  return (
-    <SafeAreaView style={styles.container}>
-      <Camera 
-        style={StyleSheet.absoluteFill}
-        device={device}
-        photo={true}
-        isActive={active}
-      />
-    </SafeAreaView>
-  );
+  */
+  return(
+    <View style={styles.container}>
+      <Text> Trying to use react-native-vision-camera but something bad </Text>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
