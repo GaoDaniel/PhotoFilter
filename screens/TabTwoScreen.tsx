@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView} from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView, Alert} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji'
@@ -15,10 +15,10 @@ export default function ImagePickerExample() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(null);
   const [items, setItems] = useState([
-    {label: 'Filter1', value: 'filter1'},
-    {label: 'Filter2', value: 'filter2'}
+    {label: 'Invert', value: 'invert'},
+    {label: 'Emojify', value: 'emojify'}
   ]);
-  const [filter, setFilter] = useState('');
+  const [filterText, setText] = useState("NO FILTER APPLIED");
 
   // map of color to emoji
   let map = new Map();
@@ -77,10 +77,13 @@ export default function ImagePickerExample() {
     });
     if(!result.cancelled){
       setImage(result);
+      const temp = await Jimp.read(dataUriToBuffer(result.uri));
+      setJImage(temp);
       console.log(image);
     }
   }
   
+  // takes a jimp image and returns an rgbaMatrix[height][width][4]
   const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; }; 
     width: any; height: any; }; 
     scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
@@ -159,6 +162,30 @@ export default function ImagePickerExample() {
     return list;
   }
   */
+  
+  // there has to be better way to do this
+  function filterSelect() {
+    if(!image){
+      alert("No image selected");
+      return;
+    }
+    const currFilter = value;
+    if(currFilter){
+      switch(currFilter){
+        case "invert":
+          invertImage();
+          setText("INVERT FILTER APPLIED");
+          break;
+        case "emojify":
+          setText("EMOJIFY FILTER APPLIED");
+          break;
+        default:
+          setText("FILTER NOT SUPPORTED");
+          break;
+      }
+    }
+    
+  }
 
   return (
     <View style={styles.container}>
@@ -173,7 +200,7 @@ export default function ImagePickerExample() {
           <TouchableOpacity onPress={getMatrix} style={styles.button}>
             <Text style={styles.buttonText}>Display Matrix</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={invertImage} style={styles.button}>
+          <TouchableOpacity onPress={filterSelect} style={styles.button}>
             <Text style={styles.buttonText}>Filter</Text>
           </TouchableOpacity>
           {image && <Image source={{ uri: image.uri }} style={styles.image} />}
@@ -205,6 +232,9 @@ export default function ImagePickerExample() {
           />
           <Text>
             Currently selected filter = {value}
+          </Text>
+          <Text>
+            {filterText}
           </Text>
         </ScrollView>
       </ScrollView>
