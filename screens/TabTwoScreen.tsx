@@ -8,12 +8,8 @@ import Jimp from 'jimp';
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
-  const [imageData, setImageData] = useState<ImageData | null>(null);
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext("2d");
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const [context, setContext] = React.useState<CanvasRenderingContext2D | null>(null);
+  const [jimage, setJImage] = useState<Promise | null>(null);
+  const [rgba, setRGBA] = useState<any[] | null>(null);
 
   // Dropdown things
   const [open, setOpen] = useState(false);
@@ -59,9 +55,9 @@ export default function ImagePickerExample() {
     });
     if(!pickerResult.cancelled){
       setImage(pickerResult);
+      const temp = await Jimp.read(dataUriToBuffer(pickerResult.uri));
+      setJImage(temp);
       console.log(image);
-      console.log(image?.uri);
-      //console.log(dataUriToBuffer(image?.uri).toString);
     }
   }
 
@@ -84,12 +80,10 @@ export default function ImagePickerExample() {
       console.log(image);
     }
   }
-
-  const readImage = (imageSrc: any) => {
-    return Jimp.read(imageSrc);
-  }
   
-  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; }; width: any; height: any; }; scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
+  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; }; 
+    width: any; height: any; }; 
+    scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
     const rgbaMatrix: any[] = [];
   
     const pixelHandler = (x: number, y: number, idx: number) => {
@@ -101,9 +95,7 @@ export default function ImagePickerExample() {
       if (!rgbaMatrix[y]) {
         rgbaMatrix[y] = []
       }
-      
       rgbaMatrix[y][x] = [red, green, blue, alpha];
-      
     }
     jimpImage.scan(
       0,
@@ -113,36 +105,34 @@ export default function ImagePickerExample() {
       pixelHandler.bind(this)
     );
     console.log(rgbaMatrix);
+    setRGBA(rgbaMatrix);
     return rgbaMatrix
   }
   
-  const imageToRgbaMatrix = (imageSrc: any) => {
-    return readImage(imageSrc)
-      .then(scanToRgbaMatrix);
-  }
   async function getMatrix() {
-    if (image) {
-      imageToRgbaMatrix(dataUriToBuffer(image.uri))
+    if (jimage) {
+      console.log(jimage);
+      scanToRgbaMatrix(jimage);
     }
   }
-
+  
   function invertImage(){
-    if (imageData){
-      let newData = new Uint8ClampedArray(imageData.data.length);
-      for (let i = 0; i < imageData.data.length; i+=4){
-        newData[i] = 255 - imageData.data[i];
-        newData[i+1] = 255 - imageData.data[i+1];
-        newData[i+2] = 255 - imageData.data[i+2];
-        // keep the A opacity value the same
-        newData[i+3] = imageData.data[i+3];
+    if (rgba){
+      const newData: any[] = [];
+      for (let i = 0; i < rgba.length; i++){
+        for(let j = 0; j < rgba[0].length; j++){
+          if (!newData[i]) {
+            newData[i] = [];
+          }
+          newData[i][j] = [255 - rgba[i][j][0], 255 - rgba[i][j][1], 255 - rgba[i][j][2], rgba[i][j][3]]
+        }
       }
-      let newImage = new ImageData(newData, imageData.width, imageData.height);
-      setImageData(newImage);
-      console.log(newImage);
-
+      setRGBA(newData);
+      console.log(rgba);
     }
   }
-
+  /*
+  // comment out for now cuz causing problems
   function emojifyImage(){
     let list: any[] = [];
     console.log("emojify clicked");
@@ -168,22 +158,7 @@ export default function ImagePickerExample() {
     }
     return list;
   }
-
-  // equivalent of componentDidUpdate()
-  // updates image in our canvas (used to be Back To Image)
-  useEffect(() => {
-    console.log("useEffect called");
-    if (canvasRef.current) {
-      const renderCtx = canvasRef.current.getContext('2d');
-
-      if (renderCtx) {
-        setContext(renderCtx);
-      }
-    }
-    if(image && imageData){
-      context?.putImageData(imageData, 0, 0);
-    }
-  }, [imageData]);
+  */
 
   return (
     <View style={styles.container}>
@@ -205,32 +180,14 @@ export default function ImagePickerExample() {
           <View style={{width: 500}}>
             <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
               <ScrollView horizontal={true} maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
-                <div>
-                  <canvas
-                      id="canvas"
-                      ref={canvasRef}
-                      width={image?.width}
-                      height={image?.height}
-                      style={{
-                        border: '2px solid #000',
-                        marginTop: 10,
-                      }}
-                  />
-                </div>
-              </ScrollView>
-            </ScrollView>
-          </View>
-          <View style={{width: 500}}>
-            <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
-              <ScrollView horizontal={true} maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
                 <View style={{
                   flexDirection:'row',
                   justifyContent: 'flex-start',
                   alignItems: 'flex-start',
                   direction: 'inherit',
                   flexWrap: 'wrap',
-                  width: imageData?.width*23,}}>
-                  {emojifyImage()}
+                  width: 500}}>
+                  
                 </View>
               </ScrollView>
             </ScrollView>
