@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView, Alert} from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView, Alert, Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji'
@@ -7,6 +7,7 @@ import dataUriToBuffer from 'data-uri-to-buffer';
 import Jimp from 'jimp';
 
 export default function ImagePickerExample() {
+  const platform: string = Platform.OS;
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
   const [jimage, setJImage] = useState<Promise | null>(null);
   const [rgba, setRGBA] = useState<any[] | null>(null);
@@ -39,21 +40,33 @@ export default function ImagePickerExample() {
   map.set([0, 0, 128], <Emoji symbol={0x1F456} label={'jeans'}/>); // dark blue
   map.set([0, 0, 0], <Emoji symbol={0x1F4A3} label={'bomb'}/>); // black
 
+  /*
+   * Opens the camera roll on the device
+   * Alerts user if access is denied
+   */
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  
+
     if (!permissionResult.granted) {
-      alert("Permission to access camera roll is required!");
+      if (platform === 'web') {
+        alert("Permission to access camera roll is required!");
+      } else {
+        Alert.alert(
+            "Access Denied",
+            "Allow access to the camera roll.",
+            [{ text: "OK" }]
+        );
+      }
       return;
     }
-  
+
     let pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
-    if(!pickerResult.cancelled){
+    if (!pickerResult.cancelled) {
       setImage(pickerResult);
       const temp = await Jimp.read(dataUriToBuffer(pickerResult.uri));
       setJImage(temp);
@@ -61,11 +74,23 @@ export default function ImagePickerExample() {
     }
   }
 
+  /*
+   * Opens the camera
+   * Alerts user if access is denied
+   */
   let openCamera = async () => {
     let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      alert("Permission to access camera is required!");
+      if (platform === 'web'){
+        alert("Permission to access camera is required!");
+      } else {
+        Alert.alert(
+            "Access Denied",
+            "Allow access to the camera.",
+            [{text: "OK"}]
+        );
+      }
       return;
     }
 
@@ -82,19 +107,21 @@ export default function ImagePickerExample() {
       console.log(image);
     }
   }
-  
-  // takes a jimp image and returns an rgbaMatrix[height][width][4]
-  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; }; 
-    width: any; height: any; }; 
+
+  /*
+   * takes a jimp image and returns an rgbaMatrix[height][width][4]
+   */
+  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; };
+    width: any; height: any; };
     scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
     const rgbaMatrix: any[] = [];
-  
+
     const pixelHandler = (x: number, y: number, idx: number) => {
-      var green = jimpImage.bitmap.data[ idx + 1 ];
-      var red   = jimpImage.bitmap.data[ idx + 0 ];
-      var blue  = jimpImage.bitmap.data[ idx + 2 ];
-      var alpha = jimpImage.bitmap.data[ idx + 3 ];
-      
+      const red = jimpImage.bitmap.data[ idx ];
+      const green = jimpImage.bitmap.data[ idx + 1 ];
+      const blue  = jimpImage.bitmap.data[ idx + 2 ];
+      const alpha = jimpImage.bitmap.data[ idx + 3 ];
+
       if (!rgbaMatrix[y]) {
         rgbaMatrix[y] = []
       }
@@ -109,16 +136,23 @@ export default function ImagePickerExample() {
     );
     console.log(rgbaMatrix);
     setRGBA(rgbaMatrix);
-    return rgbaMatrix
+    return rgbaMatrix;
   }
-  
+
+  /*
+   * gets and stores RGBa matrix
+   * does nothing if image has not been uploaded yet
+   */
   async function getMatrix() {
     if (jimage) {
       console.log(jimage);
       scanToRgbaMatrix(jimage);
     }
   }
-  
+
+  /*
+   * inverts the current pixels
+   */
   function invertImage(){
     if (rgba){
       const newData: any[] = [];
@@ -162,47 +196,80 @@ export default function ImagePickerExample() {
     return list;
   }
   */
-  
+
   // there has to be better way to do this
   function filterSelect() {
     if(!image){
-      alert("No image selected");
+      if (platform === 'web'){
+        alert("No image selected");
+      } else {
+        Alert.alert(
+            "No image selected",
+            "Upload an image first",
+            [
+              {
+                text: "Cancel",
+                onPress: () => console.log("Cancel Pressed"),
+                style: "cancel"
+              },
+              {
+                text: "Upload",
+                onPress: openImagePickerAsync
+              },
+              {
+                text: "Camera",
+                onPress: openCamera
+              }
+            ]
+        );
+      }
       return;
     }
-    const currFilter = value;
-    if(currFilter){
-      switch(currFilter){
-        case "invert":
-          invertImage();
-          setText("INVERT FILTER APPLIED");
-          break;
-        case "emojify":
-          setText("EMOJIFY FILTER APPLIED");
-          break;
-        default:
-          setText("FILTER NOT SUPPORTED");
-          break;
-      }
+    // Note: this does work, but nothing happens because we have no way to display the image from only pixel data
+    // How to go from pixel data array -> base64 or uri or buffer?
+    switch(value){
+      case "invert":
+        console.log("invertImage called");
+        invertImage();
+        setText("INVERT FILTER APPLIED");
+        break;
+      case "emojify":
+        setText("EMOJIFY FILTER APPLIED");
+        break;
+      default:
+        setText("FILTER NOT SUPPORTED");
+        break;
     }
-    
   }
+
+  // equivalent of componentDidUpdate()
+  // updates image whenever rgba changes
+  useEffect(() => {
+    console.log("rgba changed");
+    if (jimage){
+      // TODO: to be filled in after discussion
+    }
+
+
+  }, [rgba]);
 
   return (
     <View style={styles.container}>
       <ScrollView horizontal={true} minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
         <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
-          <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
-            <Text style={styles.buttonText}>Pick a photo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={openCamera} style={styles.button}>
-            <Text style={styles.buttonText}>Take a photo</Text>
-          </TouchableOpacity>
+          <View style={styles.rowContainer}>
+            <Text style={{marginHorizontal: 0, marginVertical: 30, fontSize: 24, textAlign: 'center', textAlignVertical: 'center'}}> Upload a Photo: </Text>
+            <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
+              <Text style={styles.buttonText}>Pick a photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openCamera} style={styles.button}>
+              <Text style={styles.buttonText}>Take a photo</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={getMatrix} style={styles.button}>
             <Text style={styles.buttonText}>Display Matrix</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={filterSelect} style={styles.button}>
-            <Text style={styles.buttonText}>Filter</Text>
-          </TouchableOpacity>
+
           {image && <Image source={{ uri: image.uri }} style={styles.image} />}
           <View style={{width: 500}}>
             <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
@@ -214,7 +281,7 @@ export default function ImagePickerExample() {
                   direction: 'inherit',
                   flexWrap: 'wrap',
                   width: 500}}>
-                  
+
                 </View>
               </ScrollView>
             </ScrollView>
@@ -230,6 +297,9 @@ export default function ImagePickerExample() {
             style={styles.button}
             textStyle={styles.dropText}
           />
+          <TouchableOpacity onPress={filterSelect} style={styles.button}>
+            <Text style={styles.buttonText}>Filter</Text>
+          </TouchableOpacity>
           <Text>
             Currently selected filter = {value}
           </Text>
@@ -248,6 +318,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'pink',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rowContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   logo: {
     width: 305,
@@ -271,7 +346,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 20,
     color: '#fff',
-  }, 
+  },
   image: {
     width: 300,
     height: 300,
@@ -281,5 +356,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'white',
     backgroundColor: 'blue'
-  }, 
+  },
 });
