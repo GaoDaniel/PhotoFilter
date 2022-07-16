@@ -1,0 +1,136 @@
+import com.github.spotbugs.snom.SpotBugsReport
+import com.github.spotbugs.snom.SpotBugsTask
+
+/// ***************************
+/// Main Running Configurations
+/// ***************************
+
+allprojects {
+    apply plugin: "java"
+
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        testImplementation group: "junit", name: "junit", version: "4.13"
+        testImplementation group: "org.hamcrest", name: "hamcrest-core", version: "1.3"
+        testImplementation group: "org.hamcrest", name: "hamcrest-all", version: "1.3"
+    }
+
+    javadoc {
+        options.tags = [
+            "spec.modifies:a:Modifies:",
+            "spec.effects:a:Effects:",
+            "spec.requires:a:Requires:",
+            "spec.specfield:a:Specfield:",
+            "spec.derivedfield:a:Derived Field:"
+        ]
+    }
+
+    compileJava {
+        options.encoding = "UTF-8"
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-Werror"
+    }
+
+    compileTestJava {
+        options.encoding = "UTF-8"
+        options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+    }
+}
+
+/// ********************
+/// Testing + Assertions
+/// ********************
+
+allprojects {
+    // We use assertions in checkReps, so enable them everywhere
+    tasks.withType(JavaExec) {
+        enableAssertions = true
+    }
+
+    tasks.withType(Test) {
+        enableAssertions = true
+    }
+
+    // Print out lots of info about tests to aid in debugging
+    test {
+        testLogging {
+            events "failed", "skipped"
+            setShowStandardStreams true
+            setShowExceptions true
+            exceptionFormat "full"
+        }
+    }
+}
+
+/// ****************
+/// Additional Tasks
+/// ****************
+
+allprojects {
+    task validate {
+        group = "homework"
+        description = "Validate the working copy. Ensures that the project builds, a javadoc is generated, and student tests run."
+        dependsOn clean
+        dependsOn compileJava
+        dependsOn compileTestJava
+        dependsOn javadoc
+        dependsOn test
+    }
+
+    task cleanByRenaming {
+        description = 'Use this when the "clean" target fails due to "unable to delete file" "device or resource busy".'
+        doLast {
+            File destinationDir = new File("${buildDir}", "deleteme-" + new Random().nextInt(1000000))
+            mkdir destinationDir
+            println "destinationDir = " + destinationDir
+            buildDir.eachFile { f ->
+                println "Processing " + f
+                f.renameTo(new File(destinationDir, f.getName()))
+            }
+        }
+    }
+}
+
+
+/// **********************
+/// SpotBugs Optional Tool
+/// **********************
+
+// This block directs gradle to the location of the spotbugs plugin.
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.7.0"
+    }
+}
+
+allprojects {
+    apply plugin: "com.github.spotbugs"
+
+    spotbugs {
+        showProgress = true
+        ignoreFailures = true // Optional tool, so allow the build to continue if there are warnings.
+    }
+
+    tasks.withType(SpotBugsTask) {
+        group = "spotbugs"
+        // Use html reports instead of xml reports - easier to read
+        reports(({
+            xml {
+                enabled = false
+            }
+            html {
+                enabled = true
+            }
+        } as Closure<NamedDomainObjectContainer<? extends SpotBugsReport>>))
+    }
+}

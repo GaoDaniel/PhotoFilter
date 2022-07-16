@@ -1,0 +1,4 @@
+rootProject.name = 'PhotoFilter'
+
+include 'server'
+
