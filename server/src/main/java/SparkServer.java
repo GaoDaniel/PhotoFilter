@@ -3,6 +3,7 @@ import spark.Response;
 import spark.Route;
 import spark.Spark;
 import utils.CORSFilter;
+import com.google.gson.Gson;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -34,40 +35,41 @@ public class SparkServer {
         Spark.get("/filtering", new Route() {
             @Override
             public Object handle(Request request, Response response) throws Exception {
-                String base64 = request.queryParams("uri");
+                String uri = request.queryParams("uri");
                 String filter = request.queryParams("filter");
 
-                if (base64 == null || filter == null) {
-                    Spark.halt(400, "missing one of uri or filter");
+                if (uri == null || filter == null) {
+                    Spark.halt(409, "missing one of uri or filter");
                 }
                 filter = filter.toLowerCase();
                 if (!filters.contains(filter)){
-                    Spark.halt(400, "filter does not exist");
+                    Spark.halt(401, "filter does not exist");
                 }
-
+                uri = uri.replace(' ', '+');
                 // make base64 string
                 String encodingPrefix = "base64,";
-                int index = base64.indexOf(encodingPrefix);
+                int index = uri.indexOf(encodingPrefix);
                 if (index == -1) {
-                    Spark.halt(400, "must be base64 image");
+                    Spark.halt(402, "must be base64 image");
                 }
-                int contentStartIndex = base64.indexOf(encodingPrefix) + encodingPrefix.length();
+                int contentStartIndex = uri.indexOf(encodingPrefix) + encodingPrefix.length();
 
                 // get bytes from base64
                 byte[] imageData = new byte[0];
                 try {
-                    imageData = Base64.getDecoder().decode(base64.substring(contentStartIndex));
+                    System.out.println(uri.substring(contentStartIndex));
+                    imageData = Base64.getDecoder().decode(uri.substring(contentStartIndex));
                 } catch (IllegalArgumentException e) {
-                    Spark.halt(400, "invalid base64 scheme");
+                    Spark.halt(403, "invalid base64 scheme");
                 }
                 if (imageData.length == 0) {
-                    Spark.halt(400, "invalid base64 scheme");
+                    Spark.halt(405, "invalid base64 scheme");
                 }
 
                 // get BufferedImage
                 BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(imageData));
                 if (inputImage == null){
-                    Spark.halt(400, "base64 could not be read");
+                    Spark.halt(406, "base64 could not be read");
                 }
 
                 // filter
@@ -83,7 +85,8 @@ public class SparkServer {
                 imageData = out.toByteArray();
 
                 String base64bytes = Base64.getEncoder().encodeToString(imageData);
-                return "data:image/png;base64," + base64bytes;
+                Gson gson = new Gson();
+                return gson.toJson("data:image/png;base64," + base64bytes);
             }
         });
     }

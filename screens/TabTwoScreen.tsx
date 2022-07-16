@@ -1,16 +1,13 @@
-import React, { createContext, useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ImageSourcePropType, ScrollView, Alert, Platform} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, ImageSourcePropType, Alert, Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji'
-import dataUriToBuffer from 'data-uri-to-buffer';
-import Jimp from 'jimp';
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
-  const [jimage, setJImage] = useState<Promise | null>(null);
-  const [rgba, setRGBA] = useState<any[] | null>(null);
+  const [uri, setUri] = useState('');
 
   // Dropdown things
   const [open, setOpen] = useState(false);
@@ -68,9 +65,8 @@ export default function ImagePickerExample() {
     });
     if (!pickerResult.cancelled) {
       setImage(pickerResult);
-      const temp = await Jimp.read(dataUriToBuffer(pickerResult.uri));
-      setJImage(temp);
-      console.log(image);
+      setUri(pickerResult.uri);
+      console.log(uri);
     }
   }
 
@@ -102,102 +98,43 @@ export default function ImagePickerExample() {
     });
     if(!result.cancelled){
       setImage(result);
-      const temp = await Jimp.read(dataUriToBuffer(result.uri));
-      setJImage(temp);
-      console.log(image);
+      setUri(result.uri);
+      console.log(uri);
     }
   }
 
-  /*
-   * takes a jimp image and returns an rgbaMatrix[height][width][4]
-   */
-  const scanToRgbaMatrix = (jimpImage: { bitmap: { data: { [x: string]: any; };
-    width: any; height: any; };
-    scan: (arg0: number, arg1: number, arg2: any, arg3: any, arg4: (x: any, y: any, idx: any) => void) => void; }) => {
-    const rgbaMatrix: any[] = [];
-
-    const pixelHandler = (x: number, y: number, idx: number) => {
-      const red = jimpImage.bitmap.data[ idx ];
-      const green = jimpImage.bitmap.data[ idx + 1 ];
-      const blue  = jimpImage.bitmap.data[ idx + 2 ];
-      const alpha = jimpImage.bitmap.data[ idx + 3 ];
-
-      if (!rgbaMatrix[y]) {
-        rgbaMatrix[y] = []
-      }
-      rgbaMatrix[y][x] = [red, green, blue, alpha];
-    }
-    jimpImage.scan(
-      0,
-      0,
-      jimpImage.bitmap.width,
-      jimpImage.bitmap.height,
-      pixelHandler.bind(this)
-    );
-    console.log(rgbaMatrix);
-    setRGBA(rgbaMatrix);
-    return rgbaMatrix;
-  }
-
-  /*
-   * gets and stores RGBa matrix
-   * does nothing if image has not been uploaded yet
-   */
-  async function getMatrix() {
-    if (jimage) {
-      console.log(jimage);
-      scanToRgbaMatrix(jimage);
-    }
-  }
-
-  /*
-   * inverts the current pixels
-   */
-  function invertImage(){
-    if (rgba){
-      const newData: any[] = [];
-      for (let i = 0; i < rgba.length; i++){
-        for(let j = 0; j < rgba[0].length; j++){
-          if (!newData[i]) {
-            newData[i] = [];
-          }
-          newData[i][j] = [255 - rgba[i][j][0], 255 - rgba[i][j][1], 255 - rgba[i][j][2], rgba[i][j][3]]
-        }
-      }
-      setRGBA(newData);
-      console.log(rgba);
-    }
-  }
-  /*
-  // comment out for now cuz causing problems
-  function emojifyImage(){
-    let list: any[] = [];
-    console.log("emojify clicked");
-    if (imageData){
-      for (let i = 0; i < imageData.data.length; i+=4){
-        // naive way to find closest color
-        let smallestVal = 255*3;
-        let emoji;
-        for (let [key, value] of map) {
-          let tempVal = Math.abs(imageData.data[i] - key[0]) + Math.abs(imageData.data[i+1] - key[1]) + Math.abs(imageData.data[i+2] - key[2]);
-          if (tempVal < smallestVal){
-            smallestVal = tempVal;
-            emoji = value;
-          }
-        }
-        if ((i/4+1)%(imageData.width) !== 0){
-          list.push(<div style={{float: "left"}}>{emoji}</div>);
+  async function applyFilter () {
+    try{
+      let response = await fetch("http://localhost:4567/filtering?uri=" + uri + "&filter=" + value);
+      if(!response.ok){
+        if (platform === 'web') {
+          alert("The status is wrong! Expected: 200, was: " + response.status);
         } else {
-          list.push(<div style={{float: "right"}}>{emoji}</div>);
+          Alert.alert(
+              "Status Wrong!",
+              "The status is wrong! Expected: 200, was: " + response.status,
+              [{ text: "OK" }]
+          );
         }
+        return;
       }
-      console.log(list);
+      let object = await response.json();
+      setUri(object.toString());
+      console.log(object.toString());
+    } catch(e){
+      if (platform === 'web') {
+        alert("There was an error contacting the server");
+      } else {
+        Alert.alert(
+            "Server Error",
+            "There was an error contacting the server",
+            [{ text: "OK" }]
+        );
+      }
+      console.log(e);
     }
-    return list;
   }
-  */
 
-  // there has to be better way to do this
   function filterSelect() {
     if(!image){
       if (platform === 'web'){
@@ -225,16 +162,16 @@ export default function ImagePickerExample() {
       }
       return;
     }
-    // Note: this does work, but nothing happens because we have no way to display the image from only pixel data
-    // How to go from pixel data array -> base64 or uri or buffer?
+
     switch(value){
       case "invert":
         console.log("invertImage called");
-        invertImage();
         setText("INVERT FILTER APPLIED");
+        applyFilter();
         break;
       case "emojify":
         setText("EMOJIFY FILTER APPLIED");
+        applyFilter();
         break;
       default:
         setText("FILTER NOT SUPPORTED");
@@ -242,16 +179,11 @@ export default function ImagePickerExample() {
     }
   }
 
-  // equivalent of componentDidUpdate()
-  // updates image whenever rgba changes
   useEffect(() => {
-    console.log("rgba changed");
-    if (jimage){
-      // TODO: to be filled in after discussion
-    }
-
-
-  }, [rgba]);
+    console.log("Filter applied");
+    setUri(uri);
+  }
+  ,[uri])
 
   return (
     <View style={styles.container}>
@@ -266,26 +198,16 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Take a photo</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={getMatrix} style={styles.button}>
-            <Text style={styles.buttonText}>Display Matrix</Text>
+          {image && <Image source={{uri: uri}} style={styles.image} />}
+          <TouchableOpacity onPress={filterSelect} style={styles.button}>
+            <Text style={styles.buttonText}>Filter</Text>
           </TouchableOpacity>
-
-          {image && <Image source={{ uri: image.uri }} style={styles.image} />}
-          <View style={{width: 500}}>
-            <ScrollView maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
-              <ScrollView horizontal={true} maximumZoomScale={3} minimumZoomScale={0.05} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
-                <View style={{
-                  flexDirection:'row',
-                  justifyContent: 'flex-start',
-                  alignItems: 'flex-start',
-                  direction: 'inherit',
-                  flexWrap: 'wrap',
-                  width: 500}}>
-
-                </View>
-              </ScrollView>
-            </ScrollView>
-          </View>
+          <Text>
+            Currently selected filter = {value}
+          </Text>
+          <Text>
+            {filterText}
+          </Text>
           <DropDownPicker
             open={open}
             multiple={false}
@@ -297,15 +219,6 @@ export default function ImagePickerExample() {
             style={styles.button}
             textStyle={styles.dropText}
           />
-          <TouchableOpacity onPress={filterSelect} style={styles.button}>
-            <Text style={styles.buttonText}>Filter</Text>
-          </TouchableOpacity>
-          <Text>
-            Currently selected filter = {value}
-          </Text>
-          <Text>
-            {filterText}
-          </Text>
         </ScrollView>
       </ScrollView>
 
