@@ -66,7 +66,7 @@ export default function ImagePickerExample() {
     if (!pickerResult.cancelled) {
       setImage(pickerResult);
       setUri(pickerResult.uri);
-      console.log(uri);
+      console.log(pickerResult.uri);
     }
   }
 
@@ -99,7 +99,7 @@ export default function ImagePickerExample() {
     if(!result.cancelled){
       setImage(result);
       setUri(result.uri);
-      console.log(uri);
+      console.log(result.uri);
     }
   }
 
@@ -208,7 +208,9 @@ export default function ImagePickerExample() {
           <Text>
             {filterText}
           </Text>
-          <DropDownPicker
+        </ScrollView>
+      </ScrollView>
+      <DropDownPicker
             open={open}
             multiple={false}
             value={value}
@@ -219,10 +221,8 @@ export default function ImagePickerExample() {
             style={styles.button}
             textStyle={styles.dropText}
           />
-        </ScrollView>
-      </ScrollView>
-
     </View>
+    
   );
 }
 const styles = StyleSheet.create({

@@ -95,8 +95,12 @@ public class SparkServer {
     private static void invert(BufferedImage image){
         for (int i = 0; i < image.getWidth(); i++){
             for (int j = 0; j < image.getHeight(); j++){
-                // bitwise not
-                image.setRGB(i, j, ~image.getRGB(i, j));
+                int argb = image.getRGB(i, j);
+                int alpha = 0xFF & (argb >> 24);
+                int red = 255 - (0xFF & ( argb >> 16));
+                int green = 255 - (0xFF & (argb >> 8 ));
+                int blue = 255 - (0xFF & (argb >> 0 ));
+                image.setRGB(i, j, ((alpha << 24) | (red << 16 ) | (green<<8) | blue));
             }
         }
     }
