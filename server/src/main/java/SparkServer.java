@@ -13,7 +13,7 @@ import java.util.*;
 
 public class SparkServer {
 
-    public static final Set<String> filters = Set.of("invert");
+    public static final Set<String> filters = Set.of("invert", "hflip", "vflip");
 
     /*
      * Server
@@ -77,6 +77,12 @@ public class SparkServer {
                     case "invert":
                         invert(inputImage);
                         break;
+                    case "hflip":
+                        hflip(inputImage);
+                        break;
+                    case "vflip":
+                        vflip(inputImage);
+                        break;
                 }
 
                 // convert back to base64 uri
@@ -101,6 +107,26 @@ public class SparkServer {
                 int green = 255 - (0xFF & (argb >> 8 ));
                 int blue = 255 - (0xFF & (argb >> 0 ));
                 image.setRGB(i, j, ((alpha << 24) | (red << 16 ) | (green<<8) | blue));
+            }
+        }
+    }
+
+    private static void hflip(BufferedImage image){
+        for(int i = 0; i < image.getWidth()/2; i++){
+            for(int j = 0; j < image.getHeight(); j++){
+                int temp = image.getRGB(i, j);
+                image.setRGB(i, j, image.getRGB(image.getWidth() - i - 1, j));
+                image.setRGB(image.getWidth() - i - 1, j, temp);
+            }
+        }
+    }
+
+    private static void vflip(BufferedImage image){
+        for(int i = 0; i < image.getWidth(); i++){
+            for(int j = 0; j < image.getHeight()/2; j++){
+                int temp = image.getRGB(i, j);
+                image.setRGB(i, j, image.getRGB(i, image.getHeight() - j - 1));
+                image.setRGB(i, image.getHeight() - j - 1, temp);
             }
         }
     }

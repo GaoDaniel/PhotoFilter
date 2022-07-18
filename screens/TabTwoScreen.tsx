@@ -14,7 +14,9 @@ export default function ImagePickerExample() {
   const [value, setValue] = useState(null);
   const [items, setItems] = useState([
     {label: 'Invert', value: 'invert'},
-    {label: 'Emojify', value: 'emojify'}
+    {label: 'Emojify', value: 'emojify'},
+    {label: 'Flip Horizontal', value: 'hflip'},
+    {label: 'Flip Vertical', value: 'vflip'},
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
 
@@ -171,6 +173,14 @@ export default function ImagePickerExample() {
         break;
       case "emojify":
         setText("EMOJIFY FILTER APPLIED");
+        applyFilter();
+        break;
+      case "vflip":
+        setText("FLIP VERTICAL FILTER APPLIED");
+        applyFilter();
+        break;
+      case "hflip":
+        setText("FLIP HORIZONTAL FILTER APPLIED");
         applyFilter();
         break;
       default:
