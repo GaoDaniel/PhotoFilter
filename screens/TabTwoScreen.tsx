@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, ImageSourcePropType, Alert, Platform} from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji'
@@ -9,14 +9,17 @@ export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
   const [uri, setUri] = useState('');
 
-  // Dropdown things
+  // Dropdown state
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(null);
+  const [value, setValue] = useState('revert');
   const [items, setItems] = useState([
     {label: 'Invert', value: 'invert'},
-    {label: 'Emojify', value: 'emojify'},
+    {label: 'Grayscale', value: 'gray'},
+    {label: 'Blur', value: 'blur'},
+    {label: 'Emojify', value: 'emoji'},
     {label: 'Flip Horizontal', value: 'hflip'},
     {label: 'Flip Vertical', value: 'vflip'},
+    {label: 'Restore', value: 'original'}
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
 
@@ -30,7 +33,7 @@ export default function ImagePickerExample() {
   map.set([128, 128, 128], <Emoji symbol={0x1F311} label={'new moon'}/>); // gray
   map.set([128, 128, 0], <Emoji symbol={0x1F36F} label={'honey'}/>); // dark yellow
   map.set([255, 0, 255], <Emoji symbol={0x1F338} label={'cherry blossom'}/>); // dark pink
-  map.set([0, 128, 128], <Emoji symbol={0x1F30E} label={'globe showing Americas'}/>); // blue green
+  map.set([0, 128, 128], <Emoji symbol={0x1F30E} label={'globe showing Americas'}/>); // blue-green
   map.set([255, 0, 0], <Emoji symbol={0x1F975} label={'hot face'}/>); // red
   map.set([0, 128, 0], <Emoji symbol={0x1F922} label={'nauseated face'}/>); // green
   map.set([128, 0, 128], <Emoji symbol={0x1F47F} label={'angry face with horns'}/>); // purple
@@ -165,29 +168,38 @@ export default function ImagePickerExample() {
       return;
     }
 
+    // TODO: clean this up after done testing (can probably group all server filters in if block)
     switch(value){
       case "invert":
         console.log("invertImage called");
         setText("INVERT FILTER APPLIED");
-        applyFilter();
         break;
-      case "emojify":
+      case "emoji":
         setText("EMOJIFY FILTER APPLIED");
-        applyFilter();
         break;
       case "vflip":
         setText("FLIP VERTICAL FILTER APPLIED");
-        applyFilter();
         break;
       case "hflip":
         setText("FLIP HORIZONTAL FILTER APPLIED");
-        applyFilter();
         break;
+      case "gray":
+        setText("GRAYSCALE FILTER APPLIED");
+        break;
+      case "blur":
+        setText("BLUR FILTER APPLIED");
+        break;
+      case "original":
+        setText("IMAGE RESTORED");
+        setUri(image.uri);
+        return;
       default:
         setText("FILTER NOT SUPPORTED");
-        break;
+        return;
     }
+    applyFilter();
   }
+
 
   useEffect(() => {
     console.log("Filter applied");
