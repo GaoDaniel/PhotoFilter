@@ -20,11 +20,9 @@ public class SparkServer {
         CORSFilter corsFilter = new CORSFilter();
         corsFilter.apply();
 
-        // test page
-        Spark.get("/", (request, response) -> "Test");
-
         // filter request
-        Spark.get("/filtering", (request, response) -> {
+        Spark.post("/filtering", (request, response) -> {
+            System.out.println("got here");
             String uri = request.queryParams("uri");
             String filter = request.queryParams("filter");
 

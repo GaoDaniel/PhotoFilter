@@ -71,7 +71,6 @@ export default function ImagePickerExample() {
     if (!pickerResult.cancelled) {
       setImage(pickerResult);
       setUri(pickerResult.uri);
-      console.log(pickerResult.uri);
     }
   }
 
@@ -104,13 +103,14 @@ export default function ImagePickerExample() {
     if(!result.cancelled){
       setImage(result);
       setUri(result.uri);
-      console.log(result.uri);
     }
   }
 
   async function applyFilter () {
     try{
-      let response = await fetch("http://localhost:4567/filtering?uri=" + uri + "&filter=" + value);
+      let response = await fetch("http://localhost:4567/filtering?uri=" + uri + "&filter=" + value, {
+        method: 'POST'
+      });
       if(!response.ok){
         if (platform === 'web') {
           alert("The status is wrong! Expected: 200, was: " + response.status);
