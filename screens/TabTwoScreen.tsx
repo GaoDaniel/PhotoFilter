@@ -19,7 +19,6 @@ export default function ImagePickerExample() {
     {label: 'Emojify', value: 'emoji'},
     {label: 'Flip Horizontal', value: 'hflip'},
     {label: 'Flip Vertical', value: 'vflip'},
-    {label: 'Restore', value: 'original'}
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
 
@@ -190,10 +189,6 @@ export default function ImagePickerExample() {
       case "blur":
         setText("BLUR FILTER APPLIED");
         break;
-      case "original":
-        setText("IMAGE RESTORED");
-        setUri(image.uri);
-        return;
       default:
         setText("FILTER NOT SUPPORTED");
         return;
@@ -208,12 +203,19 @@ export default function ImagePickerExample() {
   }
   ,[uri])
 
+  function restore() {
+    if(image){
+      setText("IMAGE RESTORED");
+      setUri(image.uri);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView horizontal={true} minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
         <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
+
           <View style={styles.rowContainer}>
-            <Text style={{marginHorizontal: 0, marginVertical: 30, fontSize: 24, textAlign: 'center', textAlignVertical: 'center'}}> Upload a Photo: </Text>
             <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
               <Text style={styles.buttonText}>Pick a photo</Text>
             </TouchableOpacity>
@@ -221,29 +223,47 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Take a photo</Text>
             </TouchableOpacity>
           </View>
-          {image && <Image source={{uri: uri}} style={styles.image} />}
-          <TouchableOpacity onPress={filterSelect} style={styles.button}>
-            <Text style={styles.buttonText}>Filter</Text>
-          </TouchableOpacity>
-          <Text>
-            Currently selected filter = {value}
-          </Text>
-          <Text>
-            {filterText}
-          </Text>
+          
+          <View style={styles.rowContainer}>
+            <TouchableOpacity onPress={filterSelect} style={
+              {backgroundColor: "darkorchid",  
+              padding: 20,
+              borderRadius: 10,
+              marginBottom: 5,
+              marginTop: 5,
+              marginHorizontal: 2,
+              border: '2px solid #000',
+              flex: 2}}>
+              <Text style={styles.buttonText}>Apply Filter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={restore} style={styles.button}>
+              <Text style={styles.buttonText}>Restore</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.rowContainer}>
+            <Text style={styles.instructions}>
+              STATUS: {filterText}
+            </Text>
+          </View>
+          
+          <View style={styles.imageContainer}>
+            {image && <Image source={{uri: uri}} style={styles.image} />}
+          </View>
         </ScrollView>
       </ScrollView>
       <DropDownPicker
-            open={open}
-            multiple={false}
-            value={value}
-            items={items}
-            setOpen={setOpen}
-            setValue={setValue}
-            setItems={setItems}
-            style={styles.button}
-            textStyle={styles.dropText}
-          />
+        open={open}
+        multiple={false}
+        value={value}
+        items={items}
+        setOpen={setOpen}
+        setValue={setValue}
+        setItems={setItems}
+        style={styles.button}
+        textStyle={styles.dropText}
+        placeholder="Select a Filter"
+      />
     </View>
     
   );
@@ -256,7 +276,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowContainer: {
-    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -266,31 +285,43 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   instructions: {
-    color: '#888',
+    color: 'gray',
     fontSize: 18,
     marginHorizontal: 15,
     marginBottom: 10,
   },
   button: {
-    backgroundColor: "blue",
+    backgroundColor: 'purple',
     padding: 20,
-    borderRadius: 5,
+    borderRadius: 10,
     border: '2px solid #000',
     marginBottom: 5,
     marginTop: 5,
+    marginHorizontal: 2,
+    flex: 1
   },
   buttonText: {
     fontSize: 20,
     color: '#fff',
+    flex: 1
   },
   image: {
     width: 300,
     height: 300,
     resizeMode: "contain",
   },
+  imageContainer: {
+    width: 350,
+    height: 350,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    
+  },
   dropText: {
     fontSize: 20,
     color: 'white',
-    backgroundColor: 'blue'
+    backgroundColor: 'purple'
   },
 });
