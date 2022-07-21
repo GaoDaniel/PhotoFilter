@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.*;
@@ -23,7 +24,7 @@ public class SparkServer {
         // filter request
         Spark.post("/filtering", (request, response) -> {
             System.out.println("got here");
-            String uri = request.queryParams("uri");
+            String uri = request.body();
             String filter = request.queryParams("filter");
 
             if (uri == null || filter == null) {

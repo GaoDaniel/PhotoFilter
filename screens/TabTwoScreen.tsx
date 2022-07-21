@@ -108,8 +108,9 @@ export default function ImagePickerExample() {
 
   async function applyFilter () {
     try{
-      let response = await fetch("http://localhost:4567/filtering?uri=" + uri + "&filter=" + value, {
-        method: 'POST'
+      let response = await fetch("http://localhost:4567/filtering?filter=" + value, {
+        method: 'POST',
+        body: uri,
       });
       if(!response.ok){
         if (platform === 'web') {
