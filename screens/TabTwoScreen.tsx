@@ -6,8 +6,8 @@ import Emoji from '../tools/Emoji'
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
-  const [image, setImage] = useState<ImagePicker.ImageInfo | null>(null);
-  const [uri, setUri] = useState('');
+  const [uri, setUri] = useState(['']);
+  const [index, setIndex] = useState(0);
 
   // Dropdown state
   const [open, setOpen] = useState(false);
@@ -68,8 +68,8 @@ export default function ImagePickerExample() {
       quality: 1,
     });
     if (!pickerResult.cancelled) {
-      setImage(pickerResult);
-      setUri(pickerResult.uri);
+      setIndex(0);
+      setUri([pickerResult.uri]);
     }
   }
 
@@ -100,8 +100,8 @@ export default function ImagePickerExample() {
       quality: 1,
     });
     if(!result.cancelled){
-      setImage(result);
-      setUri(result.uri);
+      setIndex(0);
+      setUri([result.uri]);
     }
   }
 
@@ -109,7 +109,7 @@ export default function ImagePickerExample() {
     try{
       let response = await fetch("http://localhost:4567/filtering?filter=" + value, {
         method: 'POST',
-        body: uri,
+        body: uri[index],
       });
       if(!response.ok){
         if (platform === 'web') {
@@ -124,7 +124,8 @@ export default function ImagePickerExample() {
         return;
       }
       let object = await response.json();
-      setUri(object.toString());
+      setIndex(uri.length)
+      setUri([...uri, object.toString()]);
       console.log(object.toString());
     } catch(e){
       if (platform === 'web') {
@@ -141,7 +142,7 @@ export default function ImagePickerExample() {
   }
 
   function filterSelect() {
-    if(!image){
+    if(uri[0] === ''){
       if (platform === 'web'){
         alert("No image selected");
       } else {
@@ -168,34 +169,26 @@ export default function ImagePickerExample() {
       return;
     }
 
-    // TODO: clean this up after done testing (can probably group all server filters in if block)
-    switch(value){
-      case "invert":
-        console.log("invertImage called");
-        setText("INVERT FILTER APPLIED");
-        break;
-      case "emoji":
-        setText("EMOJIFY FILTER APPLIED");
-        break;
-      case "vflip":
-        setText("FLIP VERTICAL FILTER APPLIED");
-        break;
-      case "hflip":
-        setText("FLIP HORIZONTAL FILTER APPLIED");
-        break;
-      case "gray":
-        setText("GRAYSCALE FILTER APPLIED");
-        break;
-      case "blur":
-        setText("BLUR FILTER APPLIED");
-        break;
-      default:
-        setText("FILTER NOT SUPPORTED");
-        return;
+    // no dictionary :( probably a better way to do this
+    let long = ""
+    for (let item of items){
+      if (item.value === value){
+        long = item.label
+      }
     }
-    applyFilter();
-  }
 
+    if (value === "") {
+      setText("FILTER NOT SUPPORTED");
+      return;
+    }
+
+    setText(long + "FILTER APPLIED")
+    if (value === "emoji"){
+      // TODO: SparkServer separate request that returns pixel data to work with
+    } else {
+      applyFilter();
+    }
+  }
 
   useEffect(() => {
     console.log("Filter applied");
@@ -204,9 +197,18 @@ export default function ImagePickerExample() {
   ,[uri])
 
   function restore() {
-    if(image){
+    if(uri[0] !== ''){
       setText("IMAGE RESTORED");
-      setUri(image.uri);
+      setIndex(uri.length)
+      setUri([...uri, uri[0]]);
+    }
+  }
+
+  function undo() {
+    if(uri[0] !== '' && index > 0){
+      setText("ACTION UNDONE");
+      setIndex(index - 1)
+      setUri(uri.slice(0, uri.length - 1))
     }
   }
 
@@ -223,6 +225,10 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Take a photo</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.imageContainer}>
+            {uri[index] !== '' && <Image source={{uri: uri[index]}} style={styles.image} />}
+          </View>
           
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={filterSelect} style={
@@ -232,12 +238,11 @@ export default function ImagePickerExample() {
               marginBottom: 5,
               marginTop: 5,
               marginHorizontal: 2,
-              border: '2px solid #000',
+              borderStyle: 'solid',
+              borderColor: 'black',
+              borderWidth: 2,
               flex: 2}}>
               <Text style={styles.buttonText}>Apply Filter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={restore} style={styles.button}>
-              <Text style={styles.buttonText}>Restore</Text>
             </TouchableOpacity>
           </View>
 
@@ -246,24 +251,32 @@ export default function ImagePickerExample() {
               STATUS: {filterText}
             </Text>
           </View>
-          
-          <View style={styles.imageContainer}>
-            {image && <Image source={{uri: uri}} style={styles.image} />}
+
+          <View style={styles.rowContainer}>
+            <DropDownPicker
+                open={open}
+                multiple={false}
+                value={value}
+                items={items}
+                setOpen={setOpen}
+                setValue={setValue}
+                setItems={setItems}
+                style={styles.button}
+                textStyle={styles.dropText}
+                placeholder="Select a Filter"
+            />
+          </View>
+
+          <View style={styles.rowContainer}>
+            <TouchableOpacity onPress={undo} style={styles.button}>
+              <Text style={styles.buttonText}>Undo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={restore} style={styles.button}>
+              <Text style={styles.buttonText}>Restore</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </ScrollView>
-      <DropDownPicker
-        open={open}
-        multiple={false}
-        value={value}
-        items={items}
-        setOpen={setOpen}
-        setValue={setValue}
-        setItems={setItems}
-        style={styles.button}
-        textStyle={styles.dropText}
-        placeholder="Select a Filter"
-      />
     </View>
     
   );
