@@ -182,7 +182,7 @@ export default function ImagePickerExample() {
       return;
     }
 
-    setText(long + "FILTER APPLIED")
+    setText(long.toUpperCase() + " FILTER APPLIED")
     if (value === "emoji"){
       // TODO: SparkServer separate request that returns pixel data to work with
     } else {

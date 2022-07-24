@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",
+    "@react-native-community/cli": "^8.0.3",
     "@react-navigation/bottom-tabs": "^6.0.5",
     "@react-navigation/native": "^6.0.2",
     "@react-navigation/native-stack": "^6.1.0",
@@ -38,6 +39,7 @@
     "react-dom": "17.0.2",
     "react-native": "0.68.2",
     "react-native-dropdown-picker": "^5.4.2",
+    "react-native-eject": "^0.1.2",
     "react-native-image-picker": "^4.8.4",
     "react-native-image-tool": "^0.8.1",
     "react-native-material-dropdown": "^0.11.1",

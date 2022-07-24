@@ -1,4 +1,6 @@
 {
+  "name": "PhotoFilter",
+  "displayName": "PhotoFilter",
   "expo": {
     "name": "PhotoFilter",
     "slug": "PhotoFilter",
