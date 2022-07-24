@@ -215,7 +215,6 @@ export default function ImagePickerExample() {
   return (
     <View style={styles.container}>
         <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={false} showsVerticalScrollIndicator={true}>
-
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
               <Text style={styles.buttonText}>Pick a photo</Text>
