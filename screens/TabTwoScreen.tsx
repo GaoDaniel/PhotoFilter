@@ -214,8 +214,7 @@ export default function ImagePickerExample() {
 
   return (
     <View style={styles.container}>
-      <ScrollView horizontal={true} minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsHorizontalScrollIndicator={true}>
-        <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={true} showsVerticalScrollIndicator={true}>
+        <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={false} showsVerticalScrollIndicator={true}>
 
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
@@ -276,7 +275,6 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </ScrollView>
     </View>
     
   );
