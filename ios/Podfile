@@ -19,6 +19,8 @@ target 'PhotoFilter' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pod 'react-native-network-info', :path => '../node_modules/react-native-network-info'
+
   target 'PhotoFilterTests' do
     inherit! :complete
     # Pods for testing

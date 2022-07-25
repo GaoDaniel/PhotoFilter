@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
-import Emoji from '../tools/Emoji'
+import Emoji from '../tools/Emoji';
+import { NetworkInfo } from 'react-native-network-info';
+import {useNetInfo} from "@react-native-community/netinfo";
+import NetInfo from '@react-native-community/netinfo';
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
   const [uri, setUri] = useState(['']);
   const [index, setIndex] = useState(0);
+  const [ip, setIP] = useState<String | null>('');
+
+  const netInfo = useNetInfo(); 
 
   // Dropdown state
   const [open, setOpen] = useState(false);
@@ -60,6 +66,21 @@ export default function ImagePickerExample() {
       }
       return;
     }
+    /* doesn't work, says: export 'NetworkInfo' was not found in 'react-native-network-info'
+    NetworkInfo.getIPAddress().then(ipAddress => {
+      setIP(ipAddress);
+    })
+    */
+
+    // gives wrong ip address?
+    if(platform !== 'web'){
+      NetInfo.fetch("wifi").then(state => {
+        setIP(state.details?.ipAddress);
+        console.log(state.details?.ipAddress);
+      })
+    } else {
+      setIP("localhost")
+    }
 
     let pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -92,7 +113,13 @@ export default function ImagePickerExample() {
       }
       return;
     }
-
+    
+    /* doesn't work, says: export 'NetworkInfo' was not found in 'react-native-network-info'
+    NetworkInfo.getIPAddress().then(ipAddress => {
+      setIP(ipAddress);
+    })
+    */
+    
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -107,7 +134,7 @@ export default function ImagePickerExample() {
 
   async function applyFilter () {
     try{
-      let response = await fetch("http://localhost:4567/filtering?filter=" + value, {
+      let response = await fetch("http://" + ip + ":4567/filtering?filter=" + value, {
         method: 'POST',
         body: uri[index],
       });
