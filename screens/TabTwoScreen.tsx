@@ -3,21 +3,29 @@ import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Plat
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji';
-import { NetworkInfo } from 'react-native-network-info';
-import {useNetInfo} from "@react-native-community/netinfo";
-import NetInfo from '@react-native-community/netinfo';
+// import { NetworkInfo } from 'react-native-network-info';
+// import {useNetInfo} from "@react-native-community/netinfo";
+// import NetInfo from '@react-native-community/netinfo';
+import Constants from "expo-constants";
+const { manifest } = Constants;
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
   const [uri, setUri] = useState(['']);
   const [index, setIndex] = useState(0);
-  const [ip, setIP] = useState<String | null>('');
+  // const [ip, setIP] = useState<String | null>('');
 
-  const netInfo = useNetInfo(); 
+  // const netInfo = useNetInfo();
+  let api: string = "photofilter.com";
+  if (manifest && typeof manifest.debuggerHost === 'string'){
+    api = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
+        ? manifest.debuggerHost.split(`:`)[0].concat(`:4567`)
+        : `photofilter.com`;
+  }
 
   // Dropdown state
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('revert');
+  const [value, setValue] = useState('');
   const [items, setItems] = useState([
     {label: 'Invert', value: 'invert'},
     {label: 'Grayscale', value: 'gray'},
@@ -73,14 +81,14 @@ export default function ImagePickerExample() {
     */
 
     // gives wrong ip address?
-    if(platform !== 'web'){
-      NetInfo.fetch("wifi").then(state => {
-        setIP(state.details?.ipAddress);
-        console.log(state.details?.ipAddress);
-      })
-    } else {
-      setIP("localhost")
-    }
+    // if(platform !== 'web'){
+    //   NetInfo.fetch("wifi").then(state => {
+    //     setIP(state.details?.ipAddress);
+    //     console.log(state.details?.ipAddress);
+    //   })
+    // } else {
+    //   setIP("localhost")
+    // }
 
     let pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -134,7 +142,7 @@ export default function ImagePickerExample() {
 
   async function applyFilter () {
     try{
-      let response = await fetch("http://" + ip + ":4567/filtering?filter=" + value, {
+      let response = await fetch("https://" + api + "/filtering?filter=" + value, {
         method: 'POST',
         body: uri[index],
       });
@@ -169,6 +177,7 @@ export default function ImagePickerExample() {
   }
 
   function filterSelect() {
+    // no image selected
     if(uri[0] === ''){
       if (platform === 'web'){
         alert("No image selected");
@@ -196,6 +205,19 @@ export default function ImagePickerExample() {
       return;
     }
 
+    // no filter selected
+    if (value === ''){
+      if (platform === 'web'){
+        alert("No filter selected");
+      } else {
+        Alert.alert(
+            "No filter selected",
+            "Select a filter first",
+            [ {text: "OK",} ]
+        );
+      }
+      return;
+    }
     // no dictionary :( probably a better way to do this
     let long = ""
     for (let item of items){
@@ -233,7 +255,7 @@ export default function ImagePickerExample() {
 
   function undo() {
     if(uri[0] !== '' && index > 0){
-      setText("ACTION UNDONE");
+      setText("FILTER UNDONE");
       setIndex(index - 1)
       setUri(uri.slice(0, uri.length - 1))
     }
