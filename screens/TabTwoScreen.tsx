@@ -16,11 +16,11 @@ export default function ImagePickerExample() {
   // const [ip, setIP] = useState<String | null>('');
 
   // const netInfo = useNetInfo();
-  let api: string = "photofilter.com";
+  let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
-    api = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
+    mobileDomain = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
         ? manifest.debuggerHost.split(`:`)[0].concat(`:4567`)
-        : `photofilter.com`;
+        : `api.example.com`;
   }
 
   // Dropdown state
@@ -142,7 +142,11 @@ export default function ImagePickerExample() {
 
   async function applyFilter () {
     try{
-      let response = await fetch("https://" + api + "/filtering?filter=" + value, {
+      let domain = "localhost:4567";
+      if (platform !== "web"){
+        domain = mobileDomain;
+      }
+      let response = await fetch("http://" + domain + "/filtering?filter=" + value, {
         method: 'POST',
         body: uri[index],
       });
