@@ -241,7 +241,7 @@ export default function ImagePickerExample() {
 
   return (
     <View style={styles.container}>
-        <ScrollView minimumZoomScale={0.5} maximumZoomScale={2} pinchGestureEnabled={false} showsVerticalScrollIndicator={true}>
+        <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
               <Text style={styles.buttonText}>Pick a photo</Text>
@@ -286,6 +286,7 @@ export default function ImagePickerExample() {
                 setOpen={setOpen}
                 setValue={setValue}
                 setItems={setItems}
+                listMode="SCROLLVIEW"
                 style={styles.button}
                 textStyle={styles.dropText}
                 placeholder="Select a Filter"
