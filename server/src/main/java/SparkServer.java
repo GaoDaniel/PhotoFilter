@@ -23,29 +23,22 @@ public class SparkServer {
 
         // filter request
         Spark.post("/filtering", (request, response) -> {
-            String uri = request.body();
+            String base64 = request.body();
             String filter = request.queryParams("filter");
-
-            if (uri == null || filter == null) {
-                Spark.halt(400, "missing one of uri or filter");
+            
+            if (base64 == null || filter == null) {
+                Spark.halt(400, "missing one of base64 or filter");
             }
             filter = filter.toLowerCase();
             if (!filters.contains(filter)) {
                 Spark.halt(401, "filter does not exist");
             }
-            uri = uri.replace(' ', '+');
-            // make base64 string
-            String encodingPrefix = "base64,";
-            int index = uri.indexOf(encodingPrefix);
-            if (index == -1) {
-                Spark.halt(402, "must be base64 image");
-            }
-            int contentStartIndex = uri.indexOf(encodingPrefix) + encodingPrefix.length();
-
+            base64 = base64.replace(' ', '+');
+            
             // get bytes from base64
             byte[] imageData = new byte[0];
             try {
-                imageData = Base64.getDecoder().decode(uri.substring(contentStartIndex));
+                imageData = Base64.getDecoder().decode(base64);
             } catch (IllegalArgumentException e) {
                 Spark.halt(403, "invalid base64 scheme");
             }
@@ -58,7 +51,7 @@ public class SparkServer {
             if (inputImage == null) {
                 Spark.halt(405, "base64 could not be read");
             }
-
+            
             // filter
             switch (filter) {
                 case "invert":
@@ -76,15 +69,16 @@ public class SparkServer {
                 case "blur":
                     blur(inputImage);
             }
-
+            
             // convert back to base64 uri
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageIO.write(inputImage, "png", out);
             imageData = out.toByteArray();
-
+            
             String base64bytes = Base64.getEncoder().encodeToString(imageData);
             Gson gson = new Gson();
-            return gson.toJson("data:image/png;base64," + base64bytes);
+            // now just returns bse64 representation
+            return gson.toJson(base64bytes);
         });
     }
 

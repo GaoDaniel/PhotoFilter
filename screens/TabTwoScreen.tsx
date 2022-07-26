@@ -3,19 +3,14 @@ import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Plat
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji';
-// import { NetworkInfo } from 'react-native-network-info';
-// import {useNetInfo} from "@react-native-community/netinfo";
-// import NetInfo from '@react-native-community/netinfo';
 import Constants from "expo-constants";
 const { manifest } = Constants;
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
-  const [uri, setUri] = useState(['']);
+  const [b64, setB64] = useState(['']);
   const [index, setIndex] = useState(0);
-  // const [ip, setIP] = useState<String | null>('');
 
-  // const netInfo = useNetInfo();
   let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
     mobileDomain = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
@@ -74,31 +69,17 @@ export default function ImagePickerExample() {
       }
       return;
     }
-    /* doesn't work, says: export 'NetworkInfo' was not found in 'react-native-network-info'
-    NetworkInfo.getIPAddress().then(ipAddress => {
-      setIP(ipAddress);
-    })
-    */
-
-    // gives wrong ip address?
-    // if(platform !== 'web'){
-    //   NetInfo.fetch("wifi").then(state => {
-    //     setIP(state.details?.ipAddress);
-    //     console.log(state.details?.ipAddress);
-    //   })
-    // } else {
-    //   setIP("localhost")
-    // }
 
     let pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
+      base64: true
     });
-    if (!pickerResult.cancelled) {
+    if (!pickerResult.cancelled && pickerResult.base64) {
       setIndex(0);
-      setUri([pickerResult.uri]);
+      setB64([pickerResult.base64]);
     }
   }
 
@@ -122,21 +103,16 @@ export default function ImagePickerExample() {
       return;
     }
     
-    /* doesn't work, says: export 'NetworkInfo' was not found in 'react-native-network-info'
-    NetworkInfo.getIPAddress().then(ipAddress => {
-      setIP(ipAddress);
-    })
-    */
-    
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
+      base64: true
     });
-    if(!result.cancelled){
+    if(!result.cancelled && result.base64){
       setIndex(0);
-      setUri([result.uri]);
+      setB64([result.base64]);
     }
   }
 
@@ -146,9 +122,11 @@ export default function ImagePickerExample() {
       if (platform !== "web"){
         domain = mobileDomain;
       }
+      console.log("http://" + domain + "/filtering?filter=" + value);
+      console.log('data:image/jpeg;base64,' + b64[index]);
       let response = await fetch("http://" + domain + "/filtering?filter=" + value, {
         method: 'POST',
-        body: uri[index],
+        body: b64[index],
       });
       if(!response.ok){
         if (platform === 'web') {
@@ -162,9 +140,11 @@ export default function ImagePickerExample() {
         }
         return;
       }
+      
       let object = await response.json();
-      setIndex(uri.length)
-      setUri([...uri, object.toString()]);
+      
+      setIndex(b64.length)
+      setB64([...b64, object.toString()]);
       console.log(object.toString());
     } catch(e){
       if (platform === 'web') {
@@ -182,7 +162,7 @@ export default function ImagePickerExample() {
 
   function filterSelect() {
     // no image selected
-    if(uri[0] === ''){
+    if(b64[0] === ''){
       if (platform === 'web'){
         alert("No image selected");
       } else {
@@ -245,23 +225,23 @@ export default function ImagePickerExample() {
 
   useEffect(() => {
     console.log("Filter applied");
-    setUri(uri);
+    setB64(b64);
   }
-  ,[uri])
+  ,[b64])
 
   function restore() {
-    if(uri[0] !== ''){
+    if(b64[0] !== ''){
       setText("IMAGE RESTORED");
-      setIndex(uri.length)
-      setUri([...uri, uri[0]]);
+      setIndex(b64.length)
+      setB64([...b64, b64[0]]);
     }
   }
 
   function undo() {
-    if(uri[0] !== '' && index > 0){
+    if(b64[0] !== '' && index > 0){
       setText("FILTER UNDONE");
       setIndex(index - 1)
-      setUri(uri.slice(0, uri.length - 1))
+      setB64(b64.slice(0, b64.length - 1))
     }
   }
 
@@ -278,7 +258,7 @@ export default function ImagePickerExample() {
           </View>
 
           <View style={styles.imageContainer}>
-            {uri[index] !== '' && <Image source={{uri: uri[index]}} style={styles.image} />}
+            {b64[index] !== '' && <Image source={{uri: 'data:image/jpeg;base64,' + b64[index]}} style={styles.image} />}
           </View>
           
           <View style={styles.rowContainer}>
