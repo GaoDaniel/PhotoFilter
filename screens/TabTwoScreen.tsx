@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform} from 'react-native';
+import CameraRoll from '@react-native-community/cameraroll';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Emoji from '../tools/Emoji';
 import Constants from "expo-constants";
+import * as Sharing from 'expo-sharing';
+
 const { manifest } = Constants;
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
   const [b64, setB64] = useState(['']);
+  const [uri, setUri] = useState(['']);
   const [index, setIndex] = useState(0);
 
   let mobileDomain: string;
@@ -80,6 +84,7 @@ export default function ImagePickerExample() {
     if (!pickerResult.cancelled && pickerResult.base64) {
       setIndex(0);
       setB64([pickerResult.base64]);
+      setUri([pickerResult.uri]);
     }
   }
 
@@ -113,6 +118,7 @@ export default function ImagePickerExample() {
     if(!result.cancelled && result.base64){
       setIndex(0);
       setB64([result.base64]);
+      setUri([result.uri]);
     }
   }
 
@@ -245,6 +251,19 @@ export default function ImagePickerExample() {
     }
   }
 
+  async function share() {
+    if(Platform.OS === 'web'){
+      alert('Sharing not available on web');
+      return;
+    }
+
+    await Sharing.shareAsync(uri[index]);
+  }
+
+  async function save() {
+    CameraRoll.save(b64[index]);
+  }
+
   return (
     <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
@@ -254,6 +273,14 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
             <TouchableOpacity onPress={openCamera} style={styles.button}>
               <Text style={styles.buttonText}>Take a photo</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.rowContainer}>
+          <TouchableOpacity onPress={save} style={styles.button}>
+              <Text style={styles.buttonText}>Save a Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={share} style={styles.button}>
+              <Text style={styles.buttonText}>Share a Photo</Text>
             </TouchableOpacity>
           </View>
 
