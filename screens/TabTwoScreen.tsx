@@ -11,9 +11,12 @@ const { manifest } = Constants;
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
-  const [b64, setB64] = useState(['']);
   const [uri, setUri] = useState(['']);
-  const [index, setIndex] = useState(0);
+  const [b64, setB64] = useState<string[]>([]);
+
+  const [undone, setUndone] = useState<string[]>([]);
+  const [originIndex, setOriginIndex] = useState<number[]>([]);
+  const [originRedo, setOriginRedo] = useState<number[]>([]);
 
   let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
@@ -82,8 +85,11 @@ export default function ImagePickerExample() {
       base64: true
     });
     if (!pickerResult.cancelled && pickerResult.base64) {
-      setIndex(0);
-      setB64([pickerResult.base64]);
+      setUndone([]);
+      setOriginRedo([]);
+      setOriginIndex([...originIndex, b64.length]);
+      setB64([...b64, pickerResult.base64]);
+
       setUri([pickerResult.uri]);
     }
   }
@@ -116,8 +122,11 @@ export default function ImagePickerExample() {
       base64: true
     });
     if(!result.cancelled && result.base64){
-      setIndex(0);
-      setB64([result.base64]);
+      setUndone([]);
+      setOriginRedo([]);
+      setOriginIndex([...originIndex, b64.length]);
+      setB64([...b64, result.base64]);
+
       setUri([result.uri]);
     }
   }
@@ -129,10 +138,10 @@ export default function ImagePickerExample() {
         domain = mobileDomain;
       }
       console.log("http://" + domain + "/filtering?filter=" + value);
-      console.log('data:image/jpeg;base64,' + b64[index]);
+      console.log('data:image/jpeg;base64,' + b64[b64.length - 1]);
       let response = await fetch("http://" + domain + "/filtering?filter=" + value, {
         method: 'POST',
-        body: b64[index],
+        body: b64[b64.length - 1],
       });
       if(!response.ok){
         if (platform === 'web') {
@@ -148,9 +157,10 @@ export default function ImagePickerExample() {
       }
       
       let object = await response.json();
-      
-      setIndex(b64.length)
+
       setB64([...b64, object.toString()]);
+      setUndone([]);
+      setOriginRedo([]);
       console.log(object.toString());
     } catch(e){
       if (platform === 'web') {
@@ -168,7 +178,7 @@ export default function ImagePickerExample() {
 
   function filterSelect() {
     // no image selected
-    if(b64[0] === ''){
+    if(b64.length === 0){
       if (platform === 'web'){
         alert("No image selected");
       } else {
@@ -208,6 +218,7 @@ export default function ImagePickerExample() {
       }
       return;
     }
+
     // no dictionary :( probably a better way to do this
     let long = ""
     for (let item of items){
@@ -236,19 +247,35 @@ export default function ImagePickerExample() {
   ,[b64])
 
   function restore() {
-    if(b64[0] !== ''){
-      setText("IMAGE RESTORED");
-      setIndex(b64.length)
-      setB64([...b64, b64[0]]);
-    }
+    setText("IMAGE RESTORED");
+    setUndone([])
+    setB64([...b64, b64[originIndex[originIndex.length - 1]]]);
   }
 
   function undo() {
-    if(b64[0] !== '' && index > 0){
-      setText("FILTER UNDONE");
-      setIndex(index - 1)
-      setB64(b64.slice(0, b64.length - 1))
+    setText("ACTION UNDONE");
+    setUndone([...undone, b64[b64.length - 1]])
+    setB64(b64.slice(0, b64.length - 1));
+
+    if (b64.length < originIndex[originIndex.length - 1]){
+      setOriginRedo([...originRedo, originIndex[originIndex.length -1]]);
+      setOriginIndex(originIndex.splice(0, originIndex.length - 1));
     }
+  }
+
+  function redo() {
+    setText("ACTION REDONE")
+    setB64([...b64, undone[undone.length - 1]]);
+    setUndone(undone.slice(0, undone.length - 1));
+
+    if (originRedo.length !== 0 && b64.length - 1 >= originRedo[originRedo.length - 1]){
+      setOriginIndex([...originIndex, originRedo[originRedo.length -1]]);
+      setOriginRedo(originRedo.splice(0, originRedo.length - 1));
+    }
+  }
+
+  function original() {
+    return b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1];
   }
 
   async function share() {
@@ -257,11 +284,11 @@ export default function ImagePickerExample() {
       return;
     }
 
-    await Sharing.shareAsync(uri[index]);
+    await Sharing.shareAsync(uri[uri.length - 1]);  // if uri needs to be an array, uri.length - 1 should be fine
   }
 
   async function save() {
-    CameraRoll.save(b64[index]);
+    CameraRoll.save(b64[b64.length - 1]);
   }
 
   return (
@@ -285,7 +312,8 @@ export default function ImagePickerExample() {
           </View>
 
           <View style={styles.imageContainer}>
-            {b64[index] !== '' && <Image source={{uri: 'data:image/jpeg;base64,' + b64[index]}} style={styles.image} />}
+            {b64[b64.length - 1] !== '' &&
+                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} style={styles.image} />}
           </View>
           
           <View style={styles.rowContainer}>
@@ -327,10 +355,22 @@ export default function ImagePickerExample() {
           </View>
 
           <View style={styles.rowContainer}>
-            <TouchableOpacity onPress={undo} style={styles.button}>
+            <TouchableOpacity
+                onPress={undo}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
               <Text style={styles.buttonText}>Undo</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={restore} style={styles.button}>
+            <TouchableOpacity
+                onPress={redo}
+                style={undone.length === 0 ? styles.disabledButton: styles.button }
+                disabled={undone.length === 0}>
+              <Text style={styles.buttonText}>Redo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={restore}
+                style={original() ? styles.disabledButton : styles.button}
+                disabled={original()}>
               <Text style={styles.buttonText}>Restore</Text>
             </TouchableOpacity>
           </View>
@@ -370,6 +410,17 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginHorizontal: 2,
     flex: 1
+  },
+  disabledButton: {
+    backgroundColor: 'purple',
+    padding: 20,
+    borderRadius: 10,
+    border: '2px solid #000',
+    marginBottom: 5,
+    marginTop: 5,
+    marginHorizontal: 2,
+    flex: 1,
+    opacity: 0.4,
   },
   buttonText: {
     fontSize: 20,
