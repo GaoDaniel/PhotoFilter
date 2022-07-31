@@ -32,6 +32,8 @@ export default function ImagePickerExample() {
     {label: 'Emojify', value: 'emoji'},
     {label: 'Flip Horizontal', value: 'hflip'},
     {label: 'Flip Vertical', value: 'vflip'},
+    {label: 'Rotate CCW', value: 'ccwrot'},
+    {label: 'Rotate CW', value: 'cwrot'},
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
 
@@ -261,7 +263,8 @@ export default function ImagePickerExample() {
   }
 
   async function save() {
-    CameraRoll.save(b64[index]);
+    // doesn't work
+    //CameraRoll.save(b64[index]);
   }
 
   return (

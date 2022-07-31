@@ -11,7 +11,7 @@ import java.util.*;
 
 public class SparkServer {
 
-    public static final Set<String> filters = Set.of("invert", "hflip", "vflip", "gray", "blur");
+    public static final Set<String> filters = Set.of("invert", "hflip", "vflip", "gray", "blur", "cwrot", "ccwrot");
 
     /*
      * Server
@@ -68,6 +68,13 @@ public class SparkServer {
                     break;
                 case "blur":
                     blur(inputImage);
+                    break;
+                case "ccwrot":
+                    ccwrot(inputImage);
+                    break;
+                case "cwrot":
+                    cwrot(inputImage);
+                    break;
             }
             
             // convert back to base64 uri
@@ -92,6 +99,25 @@ public class SparkServer {
                 int green = 255 - (0xFF & (argb >> 8));
                 int blue = 255 - (0xFF & argb);
                 image.setRGB(i, j, ((alpha << 24) | (red << 16) | (green << 8) | blue));
+            }
+        }
+    }
+
+    private static void ccwrot(BufferedImage image) {
+        
+    }
+
+    private static void cwrot(BufferedImage image) {
+        int[][] copy = new int[image.getWidth()][image.getHeight()];
+        for(int i = 0, cCol = image.getHeight() - 1; i < image.getHeight(); i++, cCol--){
+            for(int j = 0; j < image.getWidth(); j++){
+                copy[j][cCol] = image.getRGB(i, j);
+            }
+        }
+
+        for (int i = 0; i < copy.length; i++) {
+            for (int j = 0; j < copy[0].length; j++) {
+                image.setRGB(i, j, copy[i][j]);
             }
         }
     }
