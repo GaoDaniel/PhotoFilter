@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform} from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform, StyleProp} from 'react-native';
 import CameraRoll from '@react-native-community/cameraroll';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -18,7 +18,12 @@ export default function ImagePickerExample() {
   const [originIndex, setOriginIndex] = useState<number[]>([]);
   const [originRedo, setOriginRedo] = useState<number[]>([]);
 
-  const [deg, setDeg] = useState('0');
+  const [deg, setDeg] = useState('0deg');
+  const [imgStyle, setStyle] = useState({
+    width: 300,
+    height: 300,
+    resizeMode: "contain",
+  })
 
   let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
@@ -293,6 +298,37 @@ export default function ImagePickerExample() {
     // CameraRoll.save(b64[b64.length - 1]);
   }
 
+  function rotateCW() {
+    if(deg == "270deg"){
+      setDeg("0deg");
+    }
+    else if(deg == "0deg") {
+      setDeg("90deg");
+    }
+    else if(deg == "90deg") {
+      setDeg("180deg");
+    }
+    else if(deg == "180deg") {
+      setDeg("270deg");
+    }
+  }
+
+  function rotateCCW() {
+    if(deg == "270deg"){
+      setDeg("180deg");
+    }
+    else if(deg == "0deg") {
+      setDeg("270deg");
+    }
+    else if(deg == "90deg") {
+      setDeg("0deg");
+    }
+    else if(deg == "180deg") {
+      setDeg("90deg");
+    }
+  }
+
+
   return (
     <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
@@ -315,7 +351,16 @@ export default function ImagePickerExample() {
 
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&
-                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} style={styles.image} />}
+                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} style={[styles.image, {transform: [{rotate: deg}]}]} />}
+          </View>
+
+          <View style={styles.rowContainer}>
+            <TouchableOpacity onPress={rotateCCW} style={styles.button}>
+              <Text style={styles.buttonText}>Rotate CCW</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={rotateCW} style={styles.button}>
+              <Text style={styles.buttonText}>Rotate CW</Text>
+            </TouchableOpacity>
           </View>
           
           <View style={styles.rowContainer}>
@@ -381,6 +426,9 @@ export default function ImagePickerExample() {
     
   );
 }
+
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -433,7 +481,6 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     resizeMode: "contain",
-    transform: [{rotate: '180deg'}],
   },
   imageContainer: {
     width: 350,
