@@ -19,11 +19,8 @@ export default function ImagePickerExample() {
   const [originRedo, setOriginRedo] = useState<number[]>([]);
 
   const [deg, setDeg] = useState('0deg');
-  const [imgStyle, setStyle] = useState({
-    width: 300,
-    height: 300,
-    resizeMode: "contain",
-  })
+  const [hdeg, setHDeg] = useState('0deg');
+  const [vdeg, setVDeg] = useState('0deg');
 
   let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
@@ -33,17 +30,24 @@ export default function ImagePickerExample() {
   }
 
   // Dropdown state
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('');
-  const [items, setItems] = useState([
+  const [openF, setOpen] = useState(false);
+  const [valueF, setValue] = useState('');
+  const [itemsF, setItems] = useState([
     {label: 'Invert', value: 'invert'},
     {label: 'Grayscale', value: 'gray'},
     {label: 'Blur', value: 'blur'},
     {label: 'Emojify', value: 'emoji'},
-    {label: 'Flip Horizontal', value: 'hflip'},
-    {label: 'Flip Vertical', value: 'vflip'},
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
+
+  const [openT, setOpenT] = useState(false);
+  const [valueT, setValueT] = useState('');
+  const [itemsT, setItemsT] = useState([
+    {label: 'Rotate CCW', value: 'rotateCCW'},
+    {label: 'Rotate CW', value: 'rotateCW'},
+    {label: 'Flip Horizontal', value: 'hflip'},
+    {label: 'Flip Vertical', value: 'vflip'},
+  ])
 
   // map of color to emoji
   let map = new Map();
@@ -144,9 +148,9 @@ export default function ImagePickerExample() {
       if (platform !== "web"){
         domain = mobileDomain;
       }
-      console.log("http://" + domain + "/filtering?filter=" + value);
+      console.log("http://" + domain + "/filtering?filter=" + valueF);
       console.log('data:image/jpeg;base64,' + b64[b64.length - 1]);
-      let response = await fetch("http://" + domain + "/filtering?filter=" + value, {
+      let response = await fetch("http://" + domain + "/filtering?filter=" + valueF, {
         method: 'POST',
         body: b64[b64.length - 1],
       });
@@ -213,7 +217,7 @@ export default function ImagePickerExample() {
     }
 
     // no filter selected
-    if (value === ''){
+    if (valueF === ''){
       if (platform === 'web'){
         alert("No filter selected");
       } else {
@@ -228,19 +232,19 @@ export default function ImagePickerExample() {
 
     // no dictionary :( probably a better way to do this
     let long = ""
-    for (let item of items){
-      if (item.value === value){
+    for (let item of itemsF){
+      if (item.value === valueF){
         long = item.label
       }
     }
 
-    if (value === "") {
+    if (valueF === "") {
       setText("FILTER NOT SUPPORTED");
       return;
     }
 
     setText(long.toUpperCase() + " FILTER APPLIED")
-    if (value === "emoji"){
+    if (valueF === "emoji"){
       // TODO: SparkServer separate request that returns pixel data to work with
     } else {
       applyFilter();
@@ -298,6 +302,7 @@ export default function ImagePickerExample() {
     // CameraRoll.save(b64[b64.length - 1]);
   }
 
+  //Transformation functions
   function rotateCW() {
     if(deg == "270deg"){
       setDeg("0deg");
@@ -328,6 +333,37 @@ export default function ImagePickerExample() {
     }
   }
 
+  function vflip() {
+    if(vdeg == "0deg"){
+      setVDeg("180deg");
+    } else {
+      setVDeg("0deg");
+    }
+  }
+
+  function hflip() {
+    if(hdeg == "0deg"){
+      setHDeg("180deg");
+    } else {
+      setHDeg("0deg");
+    }
+  }
+
+  function applyTransform() {
+    if(valueT == 'rotateCCW'){
+      rotateCCW();
+    }
+    else if(valueT == 'rotateCW'){
+      rotateCW();
+    }
+    else if(valueT == 'vflip'){
+      vflip();
+    }
+    else if(valueT == 'hflip'){
+      hflip();
+    }
+  }
+
 
   return (
     <View style={styles.container}>
@@ -351,19 +387,52 @@ export default function ImagePickerExample() {
 
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&
-                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} style={[styles.image, {transform: [{rotate: deg}]}]} />}
-          </View>
-
-          <View style={styles.rowContainer}>
-            <TouchableOpacity onPress={rotateCCW} style={styles.button}>
-              <Text style={styles.buttonText}>Rotate CCW</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={rotateCW} style={styles.button}>
-              <Text style={styles.buttonText}>Rotate CW</Text>
-            </TouchableOpacity>
+                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} 
+                style={[styles.image, 
+                {transform: [
+                  {rotate: deg}, 
+                  {rotateY: hdeg},
+                  {rotateX: vdeg},
+                  ]}]} />}
           </View>
           
           <View style={styles.rowContainer}>
+            <TouchableOpacity onPress={applyTransform} style={
+              {backgroundColor: "darkorchid",  
+              padding: 20,
+              borderRadius: 10,
+              marginBottom: 5,
+              marginTop: 5,
+              marginHorizontal: 2,
+              borderStyle: 'solid',
+              borderColor: 'black',
+              borderWidth: 2,
+              flex: 2}}>
+              <Text style={styles.buttonText}>Apply Transform</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.rowContainer, {zIndex: 1}]}>
+            <DropDownPicker
+                open={openT}
+                multiple={false}
+                value={valueT}
+                items={itemsT}
+                setOpen={setOpenT}
+                setValue={setValueT}
+                setItems={setItemsT}
+                listMode="SCROLLVIEW"
+                style={styles.button}
+                textStyle={styles.dropText}
+                placeholder="Select a Transform"
+            />
+          </View>
+          
+          <View style={styles.rowContainer}>
+            <Text style={styles.instructions}>
+              STATUS: {filterText}
+            </Text>
+          </View>
+          <View style={[styles.rowContainer]}>
             <TouchableOpacity onPress={filterSelect} style={
               {backgroundColor: "darkorchid",  
               padding: 20,
@@ -378,19 +447,12 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Apply Filter</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.rowContainer}>
-            <Text style={styles.instructions}>
-              STATUS: {filterText}
-            </Text>
-          </View>
-
-          <View style={styles.rowContainer}>
+          <View style={[styles.rowContainer, {zIndex: 1}]}>
             <DropDownPicker
-                open={open}
+                open={openF}
                 multiple={false}
-                value={value}
-                items={items}
+                value={valueF}
+                items={itemsF}
                 setOpen={setOpen}
                 setValue={setValue}
                 setItems={setItems}
@@ -481,6 +543,7 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     resizeMode: "contain",
+    zIndex: 2,
   },
   imageContainer: {
     width: 350,
