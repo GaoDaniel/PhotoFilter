@@ -7,6 +7,9 @@ import androidx.annotation.NonNull;
 
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
+import com.RNFetchBlob.RNFetchBlobPackage;
+import com.rnfs.RNFSPackage;
+import fr.greweb.reactnativeviewshot.RNViewShotPackage;
 import com.pusherman.networkinfo.RNNetworkInfoPackage;
 import fr.bamlab.rnimageresizer.ImageResizerPackage;
 import com.facebook.react.ReactInstanceManager;
@@ -38,6 +41,7 @@ public class MainApplication extends Application implements ReactApplication {
       // Packages that cannot be autolinked yet can be added manually here, for example:
       // packages.add(new MyReactNativePackage());
       packages.add(new BitmapReactPackage());
+      packages.add(new RNFetchBlobPackage());
       return packages;
     }
 

@@ -3,9 +3,10 @@ import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Plat
 import CameraRoll from '@react-native-community/cameraroll';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
-import Emoji from '../tools/Emoji';
 import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
+import RNFetchBlob from 'react-native-fetch-blob';
+import { triggerBase64Download } from 'react-base64-downloader';
 
 const { manifest } = Constants;
 
@@ -48,25 +49,6 @@ export default function ImagePickerExample() {
     {label: 'Flip Horizontal', value: 'hflip'},
     {label: 'Flip Vertical', value: 'vflip'},
   ])
-
-  // map of color to emoji
-  let map = new Map();
-  map.set([255, 255, 255], <Emoji symbol={0x1F47A} label={'ghost'}/>); // white
-  map.set([255, 255, 0], <Emoji symbol={0x1F600} label={'grinning face'}/>); // yellow
-  map.set([192, 192, 192], <Emoji symbol={0x1F418} label={'elephant'}/>); // light gray
-  map.set([0, 255, 255], <Emoji symbol={0x1F976} label={'cold face'}/>); // sky blue
-  map.set([0, 255, 0], <Emoji symbol={0x1F438} label={'frog'}/>); // yellow green
-  map.set([128, 128, 128], <Emoji symbol={0x1F311} label={'new moon'}/>); // gray
-  map.set([128, 128, 0], <Emoji symbol={0x1F36F} label={'honey'}/>); // dark yellow
-  map.set([255, 0, 255], <Emoji symbol={0x1F338} label={'cherry blossom'}/>); // dark pink
-  map.set([0, 128, 128], <Emoji symbol={0x1F30E} label={'globe showing Americas'}/>); // blue-green
-  map.set([255, 0, 0], <Emoji symbol={0x1F975} label={'hot face'}/>); // red
-  map.set([0, 128, 0], <Emoji symbol={0x1F922} label={'nauseated face'}/>); // green
-  map.set([128, 0, 128], <Emoji symbol={0x1F47F} label={'angry face with horns'}/>); // purple
-  map.set([128, 0, 0], <Emoji symbol={0x1F4A9} label={'pile of poo'}/>); // brown
-  map.set([0, 0, 255], <Emoji symbol={0x1F6BE} label={'water closet'}/>); // blue
-  map.set([0, 0, 128], <Emoji symbol={0x1F456} label={'jeans'}/>); // dark blue
-  map.set([0, 0, 0], <Emoji symbol={0x1F4A3} label={'bomb'}/>); // black
 
   /*
    * Opens the camera roll on the device
@@ -359,6 +341,14 @@ export default function ImagePickerExample() {
     }
   }
 
+  function download() {
+    if (b64.length !== 0) {
+      triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
+      console.log("Image downloaded")
+    } else {
+      console.log("No image to download")
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -379,6 +369,9 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Share a Photo</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity onPress={download} style={styles.button}>
+            <Text style={styles.buttonText}>Download</Text>
+          </TouchableOpacity>
 
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&

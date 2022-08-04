@@ -21,6 +21,12 @@ target 'PhotoFilter' do
 
   pod 'react-native-network-info', :path => '../node_modules/react-native-network-info'
 
+  pod 'react-native-view-shot', :path => '../node_modules/react-native-view-shot'
+
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
+  pod 'react-native-fetch-blob', :path => '../node_modules/react-native-fetch-blob'
+
   target 'PhotoFilterTests' do
     inherit! :complete
     # Pods for testing

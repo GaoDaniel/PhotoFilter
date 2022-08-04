@@ -334,6 +334,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    compile project(':react-native-fetch-blob')
 }
 
 if (isNewArchitectureEnabled()) {
