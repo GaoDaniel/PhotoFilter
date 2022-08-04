@@ -242,13 +242,8 @@ export default function ImagePickerExample() {
       setText("FILTER NOT SUPPORTED");
       return;
     }
-
     setText(long.toUpperCase() + " FILTER APPLIED")
-    if (valueF === "emoji"){
-      // TODO: SparkServer separate request that returns pixel data to work with
-    } else {
-      applyFilter();
-    }
+    applyFilter();
   }
 
   useEffect(() => {
