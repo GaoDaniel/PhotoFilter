@@ -29,6 +29,7 @@
     "expo-font": "~10.1.0",
     "expo-image-picker": "~13.1.1",
     "expo-linking": "~3.1.0",
+    "expo-media-library": "^14.2.0",
     "expo-modules-core": "^0.9.2",
     "expo-sharing": "~10.2.0",
     "expo-splash-screen": "~0.15.1",

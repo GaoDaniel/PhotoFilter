@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform, StyleProp} from 'react-native';
-import CameraRoll from '@react-native-community/cameraroll';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
-import RNFetchBlob from 'react-native-fetch-blob';
 import { triggerBase64Download } from 'react-base64-downloader';
+import * as MediaLibrary from 'expo-media-library';
 
 const { manifest } = Constants;
 
@@ -266,19 +265,6 @@ export default function ImagePickerExample() {
     return b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1];
   }
 
-  async function share() {
-    if(Platform.OS === 'web'){
-      alert('Sharing not available on web');
-      return;
-    }
-
-    await Sharing.shareAsync(uri[uri.length - 1]);  // if uri needs to be an array, uri.length - 1 should be fine
-  }
-
-  async function save() {
-    // CameraRoll.save(b64[b64.length - 1]);
-  }
-
   //Transformation functions
   function rotateCW() {
     if(deg == "270deg"){
@@ -341,13 +327,29 @@ export default function ImagePickerExample() {
     }
   }
 
+  async function share() {
+    if(Platform.OS === 'web'){
+      alert('Sharing not available on web');
+      return;
+    }
+    const temp = Image.resolveAssetSource(require('../server/image.png')).uri;
+    console.log(temp);
+    // await Sharing.shareAsync(uri[uri.length - 1]);
+    await Sharing.shareAsync(temp);
+  }
+
   function download() {
+    /*
     if (b64.length !== 0) {
       triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
       console.log("Image downloaded")
     } else {
       console.log("No image to download")
     }
+    */
+    // const temp = Image.resolveAssetSource(require('../server/image.png')).uri;
+    // console.log(temp);
+    MediaLibrary.saveToLibraryAsync(uri[uri.length - 1]);
   }
 
   return (
@@ -362,16 +364,19 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
-          <TouchableOpacity onPress={save} style={styles.button}>
-              <Text style={styles.buttonText}>Save a Photo</Text>
+            <TouchableOpacity 
+                onPress={download}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Text style={styles.buttonText}>Download</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={share} style={styles.button}>
-              <Text style={styles.buttonText}>Share a Photo</Text>
+            <TouchableOpacity 
+                onPress={share} 
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Text style={styles.buttonText}>Share</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={download} style={styles.button}>
-            <Text style={styles.buttonText}>Download</Text>
-          </TouchableOpacity>
 
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&
@@ -385,17 +390,10 @@ export default function ImagePickerExample() {
           </View>
           
           <View style={styles.rowContainer}>
-            <TouchableOpacity onPress={applyTransform} style={
-              {backgroundColor: "darkorchid",  
-              padding: 20,
-              borderRadius: 10,
-              marginBottom: 5,
-              marginTop: 5,
-              marginHorizontal: 2,
-              borderStyle: 'solid',
-              borderColor: 'black',
-              borderWidth: 2,
-              flex: 2}}>
+            <TouchableOpacity 
+                onPress={applyTransform} 
+                style={b64.length === 0 ? styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
+                disabled={b64.length === 0}>
               <Text style={styles.buttonText}>Apply Transform</Text>
             </TouchableOpacity>
           </View>
@@ -421,17 +419,10 @@ export default function ImagePickerExample() {
             </Text>
           </View>
           <View style={[styles.rowContainer]}>
-            <TouchableOpacity onPress={filterSelect} style={
-              {backgroundColor: "darkorchid",  
-              padding: 20,
-              borderRadius: 10,
-              marginBottom: 5,
-              marginTop: 5,
-              marginHorizontal: 2,
-              borderStyle: 'solid',
-              borderColor: 'black',
-              borderWidth: 2,
-              flex: 2}}>
+            <TouchableOpacity 
+                onPress={filterSelect} 
+                style={b64.length === 0 ? styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
+                disabled={b64.length === 0}>
               <Text style={styles.buttonText}>Apply Filter</Text>
             </TouchableOpacity>
           </View>
