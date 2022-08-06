@@ -4,8 +4,9 @@ import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
-import { triggerBase64Download } from 'react-base64-downloader';
 import * as MediaLibrary from 'expo-media-library';
+// import { triggerBase64Download } from 'react-base64-downloader';
+import * as FileSystem from 'expo-file-system'
 
 const { manifest } = Constants;
 
@@ -17,6 +18,7 @@ export default function ImagePickerExample() {
   const [undone, setUndone] = useState<string[]>([]);
   const [originIndex, setOriginIndex] = useState<number[]>([]);
   const [originRedo, setOriginRedo] = useState<number[]>([]);
+  const [count, setCount] = useState<number>(0);
 
   const [deg, setDeg] = useState('0deg');
   const [hdeg, setHDeg] = useState('0deg');
@@ -339,17 +341,31 @@ export default function ImagePickerExample() {
   }
 
   function download() {
-    /*
-    if (b64.length !== 0) {
-      triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
-      console.log("Image downloaded")
+    if (platform == 'web'){
+      if (b64.length !== 0) {
+        // triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
+        console.log("Image downloaded")
+      } else {
+        console.log("No image to download")
+      }
     } else {
-      console.log("No image to download")
+      const path = FileSystem.cacheDirectory + `download${count}.png`;
+      setCount(count + 1);
+
+      FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
+        console.log(res);
+        FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
+          console.log("File ", file);
+        })
+      }).catch(err => {
+        console.log("err", err);
+      })
+
+      MediaLibrary.saveToLibraryAsync(path).then(() => {
+        console.log("Image saved");
+      });
     }
-    */
-    // const temp = Image.resolveAssetSource(require('../server/image.png')).uri;
-    // console.log(temp);
-    MediaLibrary.saveToLibraryAsync(uri[uri.length - 1]);
+
   }
 
   return (
