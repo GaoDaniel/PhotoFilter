@@ -74,9 +74,6 @@ public class SparkServer {
                     emojify(inputImage);
                     break;
             }
-
-            File outputfile = new File("image.png");
-            ImageIO.write(inputImage, "png", outputfile);
             
             // convert back to base64 uri
             ByteArrayOutputStream out = new ByteArrayOutputStream();

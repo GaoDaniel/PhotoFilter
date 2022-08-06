@@ -333,14 +333,25 @@ export default function ImagePickerExample() {
     if(Platform.OS === 'web'){
       alert('Sharing not available on web');
       return;
+    } else {
+      const path = FileSystem.cacheDirectory + `download${count}.png`;
+      setCount(count + 1);
+
+      await FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
+        console.log(res);
+        FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
+          console.log("File ", file);
+        })
+      }).catch(err => {
+        console.log("err", err);
+      })
+      await Sharing.shareAsync(path).then(() => {
+        console.log("Image shared");
+      });
     }
-    const temp = Image.resolveAssetSource(require('../server/image.png')).uri;
-    console.log(temp);
-    // await Sharing.shareAsync(uri[uri.length - 1]);
-    await Sharing.shareAsync(temp);
   }
 
-  function download() {
+  async function download() {
     if (platform == 'web'){
       if (b64.length !== 0) {
         // triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
@@ -352,7 +363,7 @@ export default function ImagePickerExample() {
       const path = FileSystem.cacheDirectory + `download${count}.png`;
       setCount(count + 1);
 
-      FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
+      await FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
         console.log(res);
         FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
           console.log("File ", file);
@@ -360,12 +371,10 @@ export default function ImagePickerExample() {
       }).catch(err => {
         console.log("err", err);
       })
-
       MediaLibrary.saveToLibraryAsync(path).then(() => {
         console.log("Image saved");
       });
     }
-
   }
 
   return (
