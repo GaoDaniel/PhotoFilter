@@ -88,7 +88,7 @@ function BottomTabNavigator() {
         name="TabTwo"
         component={TabTwoScreen}
         options={{
-          title: 'Main Functionality Stuff',
+          title: 'Main Functionality',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
       />

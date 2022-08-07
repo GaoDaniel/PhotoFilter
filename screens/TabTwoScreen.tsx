@@ -1,29 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform, StyleProp} from 'react-native';
+import {Image, View, TouchableOpacity, StyleSheet, Text, ScrollView, Alert, Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 // import { triggerBase64Download } from 'react-base64-downloader';
-import * as FileSystem from 'expo-file-system'
+import * as Progress from 'react-native-progress';
 
 const { manifest } = Constants;
 
 export default function ImagePickerExample() {
   const platform: string = Platform.OS;
-  const [uri, setUri] = useState(['']);
-  const [b64, setB64] = useState<string[]>([]);
+  const [loadingSave, setLoadingSave] = useState<boolean>(false);
+  const [loadingFilter, setLoadingFilter] = useState<boolean>(false);
 
+  const [b64, setB64] = useState<string[]>([]);
   const [undone, setUndone] = useState<string[]>([]);
   const [originIndex, setOriginIndex] = useState<number[]>([]);
   const [originRedo, setOriginRedo] = useState<number[]>([]);
-  const [count, setCount] = useState<number>(0);
 
   const [deg, setDeg] = useState('0deg');
   const [hdeg, setHDeg] = useState('0deg');
   const [vdeg, setVDeg] = useState('0deg');
 
+  // get domain of spark server (needed for connection from devices not running Spark server)
   let mobileDomain: string;
   if (manifest && typeof manifest.debuggerHost === 'string'){
     mobileDomain = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
@@ -31,7 +33,7 @@ export default function ImagePickerExample() {
         : `api.example.com`;
   }
 
-  // Dropdown state
+  // Filter state
   const [openF, setOpen] = useState(false);
   const [valueF, setValue] = useState('');
   const [itemsF, setItems] = useState([
@@ -42,6 +44,7 @@ export default function ImagePickerExample() {
   ]);
   const [filterText, setText] = useState("NO FILTER APPLIED");
 
+  // Transform state
   const [openT, setOpenT] = useState(false);
   const [valueT, setValueT] = useState('');
   const [itemsT, setItemsT] = useState([
@@ -51,7 +54,7 @@ export default function ImagePickerExample() {
     {label: 'Flip Vertical', value: 'vflip'},
   ])
 
-  /*
+  /**
    * Opens the camera roll on the device
    * Alerts user if access is denied
    */
@@ -83,12 +86,10 @@ export default function ImagePickerExample() {
       setOriginRedo([]);
       setOriginIndex([...originIndex, b64.length]);
       setB64([...b64, pickerResult.base64]);
-
-      setUri([pickerResult.uri]);
     }
   }
 
-  /*
+  /**
    * Opens the camera
    * Alerts user if access is denied
    */
@@ -120,23 +121,38 @@ export default function ImagePickerExample() {
       setOriginRedo([]);
       setOriginIndex([...originIndex, b64.length]);
       setB64([...b64, result.base64]);
-
-      setUri([result.uri]);
     }
   }
 
-  async function applyFilter () {
-    try{
-      let domain = "localhost:4567";
-      if (platform !== "web"){
-        domain = mobileDomain;
+  /**
+   * Checks that the filter and image are selected before calling a request to the server
+   */
+  function filterSelect() {
+    // get long form
+    let long = ""
+    for (let item of itemsF){
+      if (item.value === valueF){
+        long = item.label
       }
+    }
+    setText(long.toUpperCase() + " FILTER APPLIED")
+    setLoadingFilter(true);
+    applyFilter().then(() => {setLoadingFilter(false)});
+  }
+
+  /**
+   * helper method that calls the filter Spark server
+   */
+  async function applyFilter() {
+    try{
+      let domain = platform !== "web" ? mobileDomain : "localhost:4567";
       console.log("http://" + domain + "/filtering?filter=" + valueF);
-      console.log('data:image/jpeg;base64,' + b64[b64.length - 1]);
+
       let response = await fetch("http://" + domain + "/filtering?filter=" + valueF, {
         method: 'POST',
         body: b64[b64.length - 1],
       });
+
       if(!response.ok){
         if (platform === 'web') {
           alert("The status is wrong! Expected: 200, was: " + response.status);
@@ -149,13 +165,12 @@ export default function ImagePickerExample() {
         }
         return;
       }
-      
       let object = await response.json();
-
       setB64([...b64, object.toString()]);
+      console.log('Filtered image', 'data:image/jpeg;base64,' + object.toString());
+
       setUndone([]);
       setOriginRedo([]);
-      console.log(object.toString());
     } catch(e){
       if (platform === 'web') {
         alert("There was an error contacting the server");
@@ -170,77 +185,18 @@ export default function ImagePickerExample() {
     }
   }
 
-  function filterSelect() {
-    // no image selected
-    if(b64.length === 0){
-      if (platform === 'web'){
-        alert("No image selected");
-      } else {
-        Alert.alert(
-            "No image selected",
-            "Upload an image first",
-            [
-              {
-                text: "Cancel",
-                onPress: () => console.log("Cancel Pressed"),
-                style: "cancel"
-              },
-              {
-                text: "Upload",
-                onPress: openImagePickerAsync
-              },
-              {
-                text: "Camera",
-                onPress: openCamera
-              }
-            ]
-        );
-      }
-      return;
-    }
-
-    // no filter selected
-    if (valueF === ''){
-      if (platform === 'web'){
-        alert("No filter selected");
-      } else {
-        Alert.alert(
-            "No filter selected",
-            "Select a filter first",
-            [ {text: "OK",} ]
-        );
-      }
-      return;
-    }
-
-    // no dictionary :( probably a better way to do this
-    let long = ""
-    for (let item of itemsF){
-      if (item.value === valueF){
-        long = item.label
-      }
-    }
-
-    if (valueF === "") {
-      setText("FILTER NOT SUPPORTED");
-      return;
-    }
-    setText(long.toUpperCase() + " FILTER APPLIED")
-    applyFilter();
-  }
-
-  useEffect(() => {
-    console.log("Filter applied");
-    setB64(b64);
-  }
-  ,[b64])
-
+  /**
+   * restores the image to its original, based on its location in the b64 stack
+   */
   function restore() {
     setText("IMAGE RESTORED");
     setUndone([])
     setB64([...b64, b64[originIndex[originIndex.length - 1]]]);
   }
 
+  /**
+   * undoes last action, moving the latest image to the top of the undone stack
+   */
   function undo() {
     setText("ACTION UNDONE");
     setUndone([...undone, b64[b64.length - 1]])
@@ -252,6 +208,9 @@ export default function ImagePickerExample() {
     }
   }
 
+  /**
+   * redoes last action, moving the last undone image to the top of the b64 stack
+   */
   function redo() {
     setText("ACTION REDONE")
     setB64([...b64, undone[undone.length - 1]]);
@@ -263,119 +222,98 @@ export default function ImagePickerExample() {
     }
   }
 
-  function original() {
-    return b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1];
-  }
-
-  //Transformation functions
-  function rotateCW() {
-    if(deg == "270deg"){
-      setDeg("0deg");
-    }
-    else if(deg == "0deg") {
-      setDeg("90deg");
-    }
-    else if(deg == "90deg") {
-      setDeg("180deg");
-    }
-    else if(deg == "180deg") {
-      setDeg("270deg");
-    }
-  }
-
-  function rotateCCW() {
-    if(deg == "270deg"){
-      setDeg("180deg");
-    }
-    else if(deg == "0deg") {
-      setDeg("270deg");
-    }
-    else if(deg == "90deg") {
-      setDeg("0deg");
-    }
-    else if(deg == "180deg") {
-      setDeg("90deg");
-    }
-  }
-
-  function vflip() {
-    if(vdeg == "0deg"){
-      setVDeg("180deg");
-    } else {
-      setVDeg("0deg");
-    }
-  }
-
-  function hflip() {
-    if(hdeg == "0deg"){
-      setHDeg("180deg");
-    } else {
-      setHDeg("0deg");
-    }
-  }
-
+  /**
+   * Transforms image
+   */
   function applyTransform() {
     if(valueT == 'rotateCCW'){
-      rotateCCW();
+      const num: number = +deg.split('deg')[0];
+      setDeg(String((num + 270)%360) + 'deg');
     }
     else if(valueT == 'rotateCW'){
-      rotateCW();
+      const num: number = +deg.split('deg')[0];
+      setDeg(String((num + 90)%360) + 'deg');
     }
     else if(valueT == 'vflip'){
-      vflip();
+      const num: number = +vdeg.split('deg')[0];
+      setVDeg(String((num + 180)%360) + 'deg');
     }
     else if(valueT == 'hflip'){
-      hflip();
+      const num: number = +hdeg.split('deg')[0];
+      setHDeg(String((num + 180)%360) + 'deg');
     }
   }
 
+  /**
+   * Function for sharing the image
+   */
   async function share() {
     if(Platform.OS === 'web'){
       alert('Sharing not available on web');
       return;
     } else {
-      const path = FileSystem.cacheDirectory + `download${count}.png`;
-      setCount(count + 1);
-
-      await FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
-        console.log(res);
-        FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
-          console.log("File ", file);
-        })
-      }).catch(err => {
-        console.log("err", err);
-      })
+      const path: string = FileSystem.cacheDirectory + `download${b64.length - 1}.png`;
+      await save(path);
       await Sharing.shareAsync(path).then(() => {
         console.log("Image shared");
       });
     }
   }
 
+  /**
+   * function for downloading image
+   */
   async function download() {
     if (platform == 'web'){
-      if (b64.length !== 0) {
-        // triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
-        console.log("Image downloaded")
-      } else {
-        console.log("No image to download")
-      }
+      // triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
+      console.log("Image downloaded")
     } else {
-      const path = FileSystem.cacheDirectory + `download${count}.png`;
-      setCount(count + 1);
-
-      await FileSystem.writeAsStringAsync(path, b64[b64.length - 1], {encoding: FileSystem.EncodingType.Base64}).then(res => {
-        console.log(res);
-        FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
-          console.log("File ", file);
-        })
-      }).catch(err => {
-        console.log("err", err);
-      })
+      const path = FileSystem.cacheDirectory + `download${b64.length - 1}.png`;
+      await save(path);
       MediaLibrary.saveToLibraryAsync(path).then(() => {
         console.log("Image saved");
       });
     }
   }
+
+  // helper method that saves to Expo file system
+  async function save(path: string) {
+    // let domain = "localhost:4567";
+    // if (platform !== "web"){
+    //   domain = mobileDomain;
+    // }
+    // const downloadResumable = FileSystem.createDownloadResumable(
+    //     "http://" + domain + "/filtering?filter=" + valueF,
+    //     path,
+    //     { md5: true },
+    //     (downloadProgress) => {
+    //       setProgress(downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite);
+    //     }
+    // );
+    //
+    // await downloadResumable.downloadAsync();
+
+    setLoadingSave(true);
+    await FileSystem.writeAsStringAsync(
+        path,
+        b64[b64.length - 1],
+        {encoding: FileSystem.EncodingType.Base64}
+    ).then(res => {
+      console.log(res);
+      FileSystem.getInfoAsync(path, {size: true, md5: true}).then(file => {
+        console.log("File ", file);
+      })
+    }).catch(err => {
+      console.log("err", err);
+    })
+    setLoadingSave(false);
+  }
+
+  // updates b64 main image
+  useEffect(() => {
+    console.log("Image changed");
+    setB64(b64);
+  },[b64])
 
   return (
     <View style={styles.container}>
@@ -391,16 +329,19 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             <TouchableOpacity 
                 onPress={download}
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || loadingSave}>
               <Text style={styles.buttonText}>Download</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-                onPress={share} 
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
+                onPress={share}
+                style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || loadingSave}>
               <Text style={styles.buttonText}>Share</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.rowContainer}>
+            {loadingSave && <Progress.Bar width={300} indeterminate={loadingSave}/>}
           </View>
 
           <View style={styles.imageContainer}>
@@ -417,8 +358,9 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             <TouchableOpacity 
                 onPress={applyTransform} 
-                style={b64.length === 0 ? styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 || valueT === '' ?
+                    styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
+                disabled={b64.length === 0 || valueT === ''}>
               <Text style={styles.buttonText}>Apply Transform</Text>
             </TouchableOpacity>
           </View>
@@ -446,10 +388,14 @@ export default function ImagePickerExample() {
           <View style={[styles.rowContainer]}>
             <TouchableOpacity 
                 onPress={filterSelect} 
-                style={b64.length === 0 ? styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 || valueF === '' || loadingFilter ?
+                    styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
+                disabled={b64.length === 0 || valueF === '' || loadingFilter}>
               <Text style={styles.buttonText}>Apply Filter</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.rowContainer}>
+            {loadingFilter && <Progress.Bar width={300} indeterminate={loadingFilter}/>}
           </View>
           <View style={[styles.rowContainer, {zIndex: 1}]}>
             <DropDownPicker
@@ -482,8 +428,9 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={restore}
-                style={original() ? styles.disabledButton : styles.button}
-                disabled={original()}>
+                style={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1] ?
+                    styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1]}>
               <Text style={styles.buttonText}>Restore</Text>
             </TouchableOpacity>
           </View>
