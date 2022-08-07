@@ -42,7 +42,6 @@ export default function ImagePickerExample() {
     {label: 'Blur', value: 'blur'},
     {label: 'Emojify', value: 'emoji'},
   ]);
-  const [filterText, setText] = useState("NO FILTER APPLIED");
 
   // Transform state
   const [openT, setOpenT] = useState(false);
@@ -128,22 +127,15 @@ export default function ImagePickerExample() {
    * Checks that the filter and image are selected before calling a request to the server
    */
   function filterSelect() {
-    // get long form
-    let long = ""
-    for (let item of itemsF){
-      if (item.value === valueF){
-        long = item.label
-      }
-    }
-    setText(long.toUpperCase() + " FILTER APPLIED")
-    setLoadingFilter(true);
-    applyFilter().then(() => {setLoadingFilter(false)});
+
+    applyFilter().then(() => {});
   }
 
   /**
    * helper method that calls the filter Spark server
    */
   async function applyFilter() {
+    setLoadingFilter(true);
     try{
       let domain = platform !== "web" ? mobileDomain : "localhost:4567";
       console.log("http://" + domain + "/filtering?filter=" + valueF);
@@ -163,6 +155,7 @@ export default function ImagePickerExample() {
               [{ text: "OK" }]
           );
         }
+        setLoadingFilter(false);
         return;
       }
       let object = await response.json();
@@ -171,6 +164,7 @@ export default function ImagePickerExample() {
 
       setUndone([]);
       setOriginRedo([]);
+      setLoadingFilter(false);
     } catch(e){
       if (platform === 'web') {
         alert("There was an error contacting the server");
@@ -189,7 +183,6 @@ export default function ImagePickerExample() {
    * restores the image to its original, based on its location in the b64 stack
    */
   function restore() {
-    setText("IMAGE RESTORED");
     setUndone([])
     setB64([...b64, b64[originIndex[originIndex.length - 1]]]);
   }
@@ -198,7 +191,6 @@ export default function ImagePickerExample() {
    * undoes last action, moving the latest image to the top of the undone stack
    */
   function undo() {
-    setText("ACTION UNDONE");
     setUndone([...undone, b64[b64.length - 1]])
     setB64(b64.slice(0, b64.length - 1));
 
@@ -212,7 +204,6 @@ export default function ImagePickerExample() {
    * redoes last action, moving the last undone image to the top of the b64 stack
    */
   function redo() {
-    setText("ACTION REDONE")
     setB64([...b64, undone[undone.length - 1]]);
     setUndone(undone.slice(0, undone.length - 1));
 
@@ -379,12 +370,7 @@ export default function ImagePickerExample() {
                 placeholder="Select a Transform"
             />
           </View>
-          
-          <View style={styles.rowContainer}>
-            <Text style={styles.instructions}>
-              STATUS: {filterText}
-            </Text>
-          </View>
+
           <View style={[styles.rowContainer]}>
             <TouchableOpacity 
                 onPress={filterSelect} 
