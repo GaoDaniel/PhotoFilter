@@ -138,7 +138,6 @@ export default function ImagePickerExample() {
     setLoadingFilter(true);
     try{
       let domain = platform !== "web" ? mobileDomain : "localhost:4567";
-      console.log("http://" + domain + "/filtering?filter=" + valueF);
 
       let response = await fetch("http://" + domain + "/filtering?filter=" + valueF, {
         method: 'POST',
@@ -160,7 +159,6 @@ export default function ImagePickerExample() {
       }
       let object = await response.json();
       setB64([...b64, object.toString()]);
-      console.log('Filtered image', 'data:image/jpeg;base64,' + object.toString());
 
       setUndone([]);
       setOriginRedo([]);
