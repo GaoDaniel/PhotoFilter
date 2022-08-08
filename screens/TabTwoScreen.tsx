@@ -8,6 +8,8 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 // import { triggerBase64Download } from 'react-base64-downloader';
 import * as Progress from 'react-native-progress';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { FlipType } from 'expo-image-manipulator';
 
 const { manifest } = Constants;
 
@@ -20,10 +22,6 @@ export default function ImagePickerExample() {
   const [undone, setUndone] = useState<string[]>([]);
   const [originIndex, setOriginIndex] = useState<number[]>([]);
   const [originRedo, setOriginRedo] = useState<number[]>([]);
-
-  const [deg, setDeg] = useState('0deg');
-  const [hdeg, setHDeg] = useState('0deg');
-  const [vdeg, setVDeg] = useState('0deg');
 
   // get domain of spark server (needed for connection from devices not running Spark server)
   let mobileDomain: string;
@@ -214,22 +212,50 @@ export default function ImagePickerExample() {
   /**
    * Transforms image
    */
-  function applyTransform() {
+  async function applyTransform() {
     if(valueT == 'rotateCCW'){
-      const num: number = +deg.split('deg')[0];
-      setDeg(String((num + 270)%360) + 'deg');
+      const result = await ImageManipulator.manipulateAsync(
+        'data:image/jpeg;base64,' + b64[b64.length - 1], [
+          {rotate: -90}
+        ],
+        {base64: true}
+      )
+      if(result.base64){
+        setB64([...b64, result.base64]);
+      }
     }
     else if(valueT == 'rotateCW'){
-      const num: number = +deg.split('deg')[0];
-      setDeg(String((num + 90)%360) + 'deg');
+      const result = await ImageManipulator.manipulateAsync(
+        'data:image/jpeg;base64,' + b64[b64.length - 1], [
+          {rotate: 90}
+        ],
+        {base64: true}
+      )
+      if(result.base64){
+        setB64([...b64, result.base64]);
+      }
     }
     else if(valueT == 'vflip'){
-      const num: number = +vdeg.split('deg')[0];
-      setVDeg(String((num + 180)%360) + 'deg');
+      const result = await ImageManipulator.manipulateAsync(
+        'data:image/jpeg;base64,' + b64[b64.length - 1], [
+          {flip: FlipType.Vertical}
+        ],
+        {base64: true}
+      )
+      if(result.base64){
+        setB64([...b64, result.base64]);
+      }
     }
     else if(valueT == 'hflip'){
-      const num: number = +hdeg.split('deg')[0];
-      setHDeg(String((num + 180)%360) + 'deg');
+      const result = await ImageManipulator.manipulateAsync(
+        'data:image/jpeg;base64,' + b64[b64.length - 1], [
+          {flip: FlipType.Horizontal}
+        ],
+        {base64: true}
+      )
+      if(result.base64){
+        setB64([...b64, result.base64]);
+      }
     }
   }
 
@@ -336,12 +362,7 @@ export default function ImagePickerExample() {
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&
                 <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} 
-                style={[styles.image, 
-                {transform: [
-                  {rotate: deg}, 
-                  {rotateY: hdeg},
-                  {rotateX: vdeg},
-                  ]}]} />}
+                style={[styles.image]} />}
           </View>
           
           <View style={styles.rowContainer}>
@@ -362,7 +383,7 @@ export default function ImagePickerExample() {
                 setOpen={setOpenT}
                 setValue={setValueT}
                 setItems={setItemsT}
-                listMode="SCROLLVIEW"
+                listMode="MODAL"
                 style={styles.button}
                 textStyle={styles.dropText}
                 placeholder="Select a Transform"
@@ -390,7 +411,7 @@ export default function ImagePickerExample() {
                 setOpen={setOpen}
                 setValue={setValue}
                 setItems={setItems}
-                listMode="SCROLLVIEW"
+                listMode="MODAL"
                 style={styles.button}
                 textStyle={styles.dropText}
                 placeholder="Select a Filter"
@@ -456,7 +477,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     marginTop: 5,
     marginHorizontal: 2,
-    flex: 1
+    flex: 1,
   },
   disabledButton: {
     backgroundColor: 'purple',
@@ -487,11 +508,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'white',
     borderRadius: 10,
-    
   },
   dropText: {
     fontSize: 20,
     color: 'white',
-    backgroundColor: 'purple'
+    backgroundColor: 'purple',
+    zIndex: 3
   },
 });
