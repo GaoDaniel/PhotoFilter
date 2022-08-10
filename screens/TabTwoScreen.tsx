@@ -6,7 +6,7 @@ import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-// import { triggerBase64Download } from 'react-base64-downloader';
+import { triggerBase64Download } from 'react-base64-downloader';
 import * as Progress from 'react-native-progress';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { FlipType } from 'expo-image-manipulator';
@@ -37,7 +37,8 @@ export default function ImagePickerExample() {
   const [itemsF, setItems] = useState([
     {label: 'Invert', value: 'invert'},
     {label: 'Grayscale', value: 'gray'},
-    {label: 'Blur', value: 'blur'},
+    {label: 'Box Blur', value: 'box'},
+    {label: 'Gaussian Blur', value: 'gauss'},
     {label: 'Emojify', value: 'emoji'},
   ]);
 
@@ -52,22 +53,13 @@ export default function ImagePickerExample() {
   ])
 
   /**
-   * Opens the camera roll on the device
-   * Alerts user if access is denied
+   * Opens the camera roll on the device, alerting user if access is denied
    */
   let openImagePickerAsync = async () => {
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      if (platform === 'web') {
-        alert("Permission to access camera roll is required!");
-      } else {
-        Alert.alert(
-            "Access Denied",
-            "Allow access to the camera roll.",
-            [{ text: "OK" }]
-        );
-      }
+      makeAlert("Access Denied", "Permission to access camera roll is required!");
       return;
     }
 
@@ -79,33 +71,22 @@ export default function ImagePickerExample() {
       base64: true
     });
     if (!pickerResult.cancelled && pickerResult.base64) {
-      setUndone([]);
-      setOriginRedo([]);
       setOriginIndex([...originIndex, b64.length]);
-      setB64([...b64, pickerResult.base64]);
+      setImage(pickerResult.base64);
     }
   }
 
   /**
-   * Opens the camera
-   * Alerts user if access is denied
+   * Opens the camera, alerting user if access is denied
    */
   let openCamera = async () => {
     let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permissionResult.granted) {
-      if (platform === 'web'){
-        alert("Permission to access camera is required!");
-      } else {
-        Alert.alert(
-            "Access Denied",
-            "Allow access to the camera.",
-            [{text: "OK"}]
-        );
-      }
+      makeAlert("Access Denied", "Permission to access camera is required!");
       return;
     }
-    
+
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -114,161 +95,105 @@ export default function ImagePickerExample() {
       base64: true
     });
     if(!result.cancelled && result.base64){
-      setUndone([]);
-      setOriginRedo([]);
       setOriginIndex([...originIndex, b64.length]);
-      setB64([...b64, result.base64]);
+      setImage(result.base64);
     }
   }
 
   /**
-   * Checks that the filter and image are selected before calling a request to the server
-   */
-  function filterSelect() {
-
-    applyFilter().then(() => {});
-  }
-
-  /**
-   * helper method that calls the filter Spark server
+   * applies filter by calling Spark server
    */
   async function applyFilter() {
     setLoadingFilter(true);
     try{
       let domain = platform !== "web" ? mobileDomain : "localhost:4567";
-
       let response = await fetch("http://" + domain + "/filtering?filter=" + valueF, {
         method: 'POST',
         body: b64[b64.length - 1],
       });
 
-      if(!response.ok){
-        if (platform === 'web') {
-          alert("The status is wrong! Expected: 200, was: " + response.status);
-        } else {
-          Alert.alert(
-              "Status Wrong!",
-              "The status is wrong! Expected: 200, was: " + response.status,
-              [{ text: "OK" }]
-          );
-        }
+      if(!response.ok) {
+        makeAlert("Status Wrong!", "The status is wrong! Expected: 200, was: " + response.status);
         setLoadingFilter(false);
         return;
       }
-      let object = await response.json();
-      setB64([...b64, object.toString()]);
 
-      setUndone([]);
-      setOriginRedo([]);
-      setLoadingFilter(false);
+      let object = await response.json();
+      setImage(object.toString());
     } catch(e){
-      if (platform === 'web') {
-        alert("There was an error contacting the server");
-      } else {
-        Alert.alert(
-            "Server Error",
-            "There was an error contacting the server",
-            [{ text: "OK" }]
-        );
-      }
+      makeAlert("Server Error", "There was an error contacting the server", )
       console.log(e);
     }
-  }
-
-  /**
-   * restores the image to its original, based on its location in the b64 stack
-   */
-  function restore() {
-    setUndone([])
-    setB64([...b64, b64[originIndex[originIndex.length - 1]]]);
-  }
-
-  /**
-   * undoes last action, moving the latest image to the top of the undone stack
-   */
-  function undo() {
-    setUndone([...undone, b64[b64.length - 1]])
-    setB64(b64.slice(0, b64.length - 1));
-
-    if (b64.length < originIndex[originIndex.length - 1]){
-      setOriginRedo([...originRedo, originIndex[originIndex.length -1]]);
-      setOriginIndex(originIndex.splice(0, originIndex.length - 1));
-    }
-  }
-
-  /**
-   * redoes last action, moving the last undone image to the top of the b64 stack
-   */
-  function redo() {
-    setB64([...b64, undone[undone.length - 1]]);
-    setUndone(undone.slice(0, undone.length - 1));
-
-    if (originRedo.length !== 0 && b64.length - 1 >= originRedo[originRedo.length - 1]){
-      setOriginIndex([...originIndex, originRedo[originRedo.length -1]]);
-      setOriginRedo(originRedo.splice(0, originRedo.length - 1));
-    }
+    setLoadingFilter(false);
   }
 
   /**
    * Transforms image
    */
   async function applyTransform() {
+    let result = null;
+    const uri = 'data:image/jpeg;base64,' + b64[b64.length - 1];
     if(valueT == 'rotateCCW'){
-      const result = await ImageManipulator.manipulateAsync(
-        'data:image/jpeg;base64,' + b64[b64.length - 1], [
-          {rotate: -90}
-        ],
-        {base64: true}
-      )
-      if(result.base64){
-        setB64([...b64, result.base64]);
-      }
+      result = await ImageManipulator.manipulateAsync(uri,[ {rotate: -90} ],{base64: true});
     }
     else if(valueT == 'rotateCW'){
-      const result = await ImageManipulator.manipulateAsync(
-        'data:image/jpeg;base64,' + b64[b64.length - 1], [
-          {rotate: 90}
-        ],
-        {base64: true}
-      )
-      if(result.base64){
-        setB64([...b64, result.base64]);
-      }
+      result = await ImageManipulator.manipulateAsync(uri,[ {rotate: 90} ],{base64: true});
     }
     else if(valueT == 'vflip'){
-      const result = await ImageManipulator.manipulateAsync(
-        'data:image/jpeg;base64,' + b64[b64.length - 1], [
-          {flip: FlipType.Vertical}
-        ],
-        {base64: true}
-      )
-      if(result.base64){
-        setB64([...b64, result.base64]);
-      }
+      result = await ImageManipulator.manipulateAsync(uri,[ {flip: FlipType.Vertical} ],{base64: true});
     }
     else if(valueT == 'hflip'){
-      const result = await ImageManipulator.manipulateAsync(
-        'data:image/jpeg;base64,' + b64[b64.length - 1], [
-          {flip: FlipType.Horizontal}
-        ],
-        {base64: true}
-      )
-      if(result.base64){
-        setB64([...b64, result.base64]);
-      }
+      result = await ImageManipulator.manipulateAsync(uri,[ {flip: FlipType.Horizontal} ],{base64: true});
+    }
+    if(result && result.base64){
+      setB64([...b64, result.base64]);
+      setUndone([]);
+      setOriginRedo([]);
     }
   }
 
   /**
-   * Function for sharing the image
+   * restores the image to its original, based on its location in the b64 stack
+   * restore is treated like a filter, so it also clears the redo stacks
+   */
+  function restore() {
+    setImage(b64[originIndex[originIndex.length - 1]]);
+  }
+
+  /**
+   * undoes last action, moving the latest image to the top of the undone stack
+   */
+  function undo() {
+    if (b64.length - 1 === originIndex[originIndex.length - 1]){
+      setOriginRedo([...originRedo, originIndex[originIndex.length -1]]);
+      setOriginIndex(originIndex.slice(0, originIndex.length - 1));
+    }
+    setUndone([...undone, b64[b64.length - 1]])
+    setB64(b64.slice(0, b64.length - 1));
+  }
+
+  /**
+   * redoes last action, moving the last undone image to the top of the b64 stack
+   */
+  function redo() {
+    if (originRedo.length !== 0 && b64.length >= originRedo[originRedo.length - 1]){
+      setOriginIndex([...originIndex, originRedo[originRedo.length -1]]);
+      setOriginRedo(originRedo.slice(0, originRedo.length - 1));
+    }
+    setB64([...b64, undone[undone.length - 1]]);
+    setUndone(undone.slice(0, undone.length - 1));
+  }
+
+  /**
+   * shares the image
+   * web is not supported
    */
   async function share() {
     if(Platform.OS === 'web'){
       alert('Sharing not available on web');
       return;
     } else {
-      const path: string = FileSystem.cacheDirectory + `download${b64.length - 1}.png`;
-      await save(path);
+      const path: string = await save();
       await Sharing.shareAsync(path).then(() => {
         console.log("Image shared");
       });
@@ -276,15 +201,14 @@ export default function ImagePickerExample() {
   }
 
   /**
-   * function for downloading image
+   * downloads image
    */
   async function download() {
     if (platform == 'web'){
-      // triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
+      triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
       console.log("Image downloaded")
     } else {
-      const path = FileSystem.cacheDirectory + `download${b64.length - 1}.png`;
-      await save(path);
+      const path: string = await save();
       MediaLibrary.saveToLibraryAsync(path).then(() => {
         console.log("Image saved");
       });
@@ -292,23 +216,9 @@ export default function ImagePickerExample() {
   }
 
   // helper method that saves to Expo file system
-  async function save(path: string) {
-    // let domain = "localhost:4567";
-    // if (platform !== "web"){
-    //   domain = mobileDomain;
-    // }
-    // const downloadResumable = FileSystem.createDownloadResumable(
-    //     "http://" + domain + "/filtering?filter=" + valueF,
-    //     path,
-    //     { md5: true },
-    //     (downloadProgress) => {
-    //       setProgress(downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite);
-    //     }
-    // );
-    //
-    // await downloadResumable.downloadAsync();
-
+  async function save() {
     setLoadingSave(true);
+    const path: string = FileSystem.cacheDirectory + `download${b64.length - 1}.png`
     await FileSystem.writeAsStringAsync(
         path,
         b64[b64.length - 1],
@@ -320,8 +230,25 @@ export default function ImagePickerExample() {
       })
     }).catch(err => {
       console.log("err", err);
-    })
+    });
     setLoadingSave(false);
+    return path;
+  }
+
+  // helper image setter method
+  function setImage(uri: string) {
+    setB64([...b64, uri]);
+    setUndone([]);
+    setOriginRedo([]);
+  }
+
+  // helper alert method
+  function makeAlert(title: string, message: string){
+    if (platform === 'web') {
+      alert(message);
+    } else {
+      Alert.alert( title, message,[{ text: "OK" }] );
+    }
   }
 
   // updates b64 main image
@@ -392,7 +319,7 @@ export default function ImagePickerExample() {
 
           <View style={[styles.rowContainer]}>
             <TouchableOpacity 
-                onPress={filterSelect} 
+                onPress={applyFilter}
                 style={b64.length === 0 || valueF === '' || loadingFilter ?
                     styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
                 disabled={b64.length === 0 || valueF === '' || loadingFilter}>

@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 
 import javax.imageio.ImageIO;
 
-import org.eclipse.jetty.util.thread.ThreadPool;
+//import org.eclipse.jetty.util.thread.ThreadPool;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -13,9 +13,10 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class SparkServer {
-    public static final Set<String> filters = Set.of("invert", "gray", "blur", "emoji");
+    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji");
     private static final Map<Integer, BufferedImage> emojis = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
+
     /*
      * Server
      * Format of URLs: http://localhost:4567/filtering?filter=invert
@@ -58,8 +59,7 @@ public class SparkServer {
             }
 
             // filter
-            //Spark.threadPool(8);
-            fjpool.invoke(new Parallelize(inputImage, 0, inputImage.getWidth(), 0, inputImage.getHeight(), filter));
+            filter(inputImage, filter);
 
             // convert back to base64 uri
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -68,7 +68,7 @@ public class SparkServer {
 
             String base64bytes = Base64.getEncoder().encodeToString(imageData);
             Gson gson = new Gson();
-            // now just returns bse64 representation
+            // now just returns base64 representation
             return gson.toJson(base64bytes);
         });
     }
@@ -76,30 +76,48 @@ public class SparkServer {
     private static void populateEmojis() {
         try {
             String location = "src/main/resources/";
-            emojis.put(0xFFFFFF, ImageIO.read(new File(location + "white.png")));
-            emojis.put(0xFFFF00, ImageIO.read(new File(location + "yellow.png")));
-            emojis.put(0xC0C0C0, ImageIO.read(new File(location + "light_gray.png")));
-            emojis.put(0x00FFFF, ImageIO.read(new File(location + "sky_blue.png")));
-            emojis.put(0x00FF00, ImageIO.read(new File(location + "yellow_green.png")));
-            emojis.put(0x808080, ImageIO.read(new File(location + "gray.png")));
-            emojis.put(0x808000, ImageIO.read(new File(location + "dark_yellow.png")));
-            emojis.put(0xFF00FF, ImageIO.read(new File(location + "dark_pink.png")));
-            emojis.put(0x008080, ImageIO.read(new File(location + "blue-green.png")));
-            emojis.put(0xFF0000, ImageIO.read(new File(location + "red.png")));
-            emojis.put(0x008000, ImageIO.read(new File(location + "green.png")));
-            emojis.put(0x800080, ImageIO.read(new File(location + "purple.png")));
-            emojis.put(0x964B00, ImageIO.read(new File(location + "brown.png")));
-            emojis.put(0x0000FF, ImageIO.read(new File(location + "blue.png")));
-            emojis.put(0x000080, ImageIO.read(new File(location + "dark_blue.png")));
-            emojis.put(0x000000, ImageIO.read(new File(location + "black.png")));
+            emojis.put(0x6f6a6d, ImageIO.read(new File(location + "white.png")));
+            emojis.put(0x93752a, ImageIO.read(new File(location + "yellow.png")));
+            emojis.put(0x323332, ImageIO.read(new File(location + "light_gray.png")));
+            emojis.put(0x3d635d, ImageIO.read(new File(location + "sky_blue.png")));
+            emojis.put(0x3d533f, ImageIO.read(new File(location + "yellow_green.png")));
+            emojis.put(0x383c48, ImageIO.read(new File(location + "gray.png")));
+            emojis.put(0xd1ac5b, ImageIO.read(new File(location + "dark_yellow.png")));
+            emojis.put(0xb0738d, ImageIO.read(new File(location + "dark_pink.png")));
+            emojis.put(0x3b5773, ImageIO.read(new File(location + "blue_green.png")));
+            emojis.put(0xa02638, ImageIO.read(new File(location + "red.png")));
+            emojis.put(0x5f6f12, ImageIO.read(new File(location + "green.png")));
+            emojis.put(0x632c6f, ImageIO.read(new File(location + "purple.png")));
+            emojis.put(0x3c2a1f, ImageIO.read(new File(location + "brown.png")));
+            emojis.put(0x3584d8, ImageIO.read(new File(location + "blue.png")));
+            emojis.put(0x212c47, ImageIO.read(new File(location + "dark_blue.png")));
+            emojis.put(0x393a37, ImageIO.read(new File(location + "black.png")));
         } catch (IOException e) {
             System.out.println("Input error: " + e);
         }
-
     }
 
+    private static void filter(BufferedImage inputImage, String filter) {
+        // filter
+        // Spark.threadPool(8);
+        // fjpool.invoke(new Parallelize(inputImage, 0, inputImage.getWidth(),0, inputImage.getHeight(), filter));
+        if (filter.equals("box") || filter.equals("gauss")) {
+            int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
+            fjpool.invoke(new ParallelizeBlur(inputImage, copy,
+                    0, inputImage.getWidth(), 0, inputImage.getHeight(), filter));
+            inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy,
+                    0, inputImage.getWidth());
+
+        } else {
+            fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15)/16,
+                    0, (inputImage.getHeight() + 15)/16, filter));
+        }
+    }
+
+    // xlow, xhi, ylow, yhi are in terms of 16x16 blocks
     private static class Parallelize extends RecursiveAction {
-        final int SEQUENTIAL_CUTOFF = 10000;
+        // final int SEQUENTIAL_CUTOFF = 10000;
+        final int SEQUENTIAL_CUTOFF = 4;
         int xlow, xhi, ylow, yhi;
         String filter;
         BufferedImage image;
@@ -113,6 +131,7 @@ public class SparkServer {
             this.filter = filter;
         }
 
+        @Override
         public void compute() {
             if ((xhi - xlow) * (yhi - ylow) <= SEQUENTIAL_CUTOFF) {
                 switch (filter) {
@@ -121,9 +140,6 @@ public class SparkServer {
                         break;
                     case "gray":
                         grayscale();
-                        break;
-                    case "blur":
-                        blur();
                         break;
                     case "emoji":
                         emojify();
@@ -140,30 +156,25 @@ public class SparkServer {
                     left = new Parallelize(image, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
                     right = new Parallelize(image, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
                 }
-               
                 left.fork();
                 right.compute();
-                left.join();         
+                left.join();
             }
         }
 
         // filters represented by private methods
         private void invert() {
-            for (int i = xlow; i < xhi; i++) {
-                for (int j = ylow; j < yhi; j++) {
+            for (int i = xlow * 16; i < xhi * 16 && i < image.getWidth(); i++) {
+                for (int j = ylow * 16; j < yhi * 16 && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
-                    int alpha = 0xFF & (argb >> 24);
-                    int red = 255 - (0xFF & (argb >> 16));
-                    int green = 255 - (0xFF & (argb >> 8));
-                    int blue = 255 - (0xFF & argb);
-                    image.setRGB(i, j, ((alpha << 24) | (red << 16) | (green << 8) | blue));
+                    image.setRGB(i, j, (argb & 0xFF000000) + (0xFFFFFF & ~argb));
                 }
             }
         }
 
         private void grayscale() {
-            for (int i = xlow; i < xhi; i++) {
-                for (int j = ylow; j < yhi; j++) {
+            for (int i = xlow * 16; i < xhi * 16 && i < image.getWidth(); i++) {
+                for (int j = ylow * 16; j < yhi * 16 && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
                     int alpha = 0xFF & (argb >> 24);
                     int red = 0xFF & (argb >> 16);
@@ -175,87 +186,158 @@ public class SparkServer {
             }
         }
 
-        private void blur() {
-            if ((xhi - xlow) < 3 || (yhi - ylow) < 3) {
-                return;
-            }
-            int[][] copy = new int[(xhi - xlow)][(yhi - ylow)];
-
-            for (int i = Math.max(1, xlow); i < Math.min(image.getWidth() - 1, xhi); i++) {
-                for (int j = Math.max(1, ylow); j < Math.min(image.getHeight() - 1, yhi); j++) {
-                    int[] sum = new int[3];
-                    for (int x = -1; x <= 1; x++) {
-                        for (int y = -1; y <= 1; y++) {
-                            int argb = image.getRGB(i + x, j + y);
-                            sum[0] += 0xFF & (argb >> 16);
-                            sum[1] += 0xFF & (argb >> 8);
-                            sum[2] += 0xFF & argb;
-                        }
-                    }
-                    int alpha = 0xFF & (image.getRGB(i, j) >> 24);
-                    // floored rgb values
-                    copy[i - xlow][j - ylow] = (alpha << 24) | (sum[0] / 9 << 16) | (sum[1] / 9 << 8) | (sum[2] / 9);
-                }
-            }
-
-            for (int i = Math.max(1, xlow); i < Math.min(image.getWidth() - 1, xhi); i++) {
-                for (int j = Math.max(1, ylow); j < Math.min(image.getHeight() - 1, yhi); j++) {
-                    image.setRGB(i, j, copy[i - xlow][j - ylow]);
-                }
-            }
-        }
-
         private void emojify() {
-            if (image.getWidth() < 16 || image.getHeight() < 16) {
-                return;
-            }
-            int[][] copy = new int[(image.getWidth() / 16) * 16][(image.getHeight() / 16) * 16];
-
-            for (int i = 15; i < image.getWidth(); i += 16) {
-                for (int j = 15; j < image.getHeight(); j += 16) {
+            for (int x = xlow; x < xhi; x++){
+                for (int y = ylow; y < yhi; y++){
+                    // int with highest count = most popular color
                     Map<Integer, Integer> counts = new HashMap<>();
-                    for (int k = i - 15; k <= i; k++) {
-                        for (int l = j - 15; l <= j; l++) {
-                            int argb = image.getRGB(k, l);
+                    int maxCount = 0;
+                    int emojiColor = 0;
+                    for (int i = x * 16; i < x * 16 + 15 && i < image.getWidth(); i++){
+                        for (int j = y * 16; j < y * 16 + 15 && j < image.getHeight(); j++){
+                            int argb = image.getRGB(i, j);
                             int red = 0xFF & (argb >> 16);
                             int green = 0xFF & (argb >> 8);
                             int blue = 0xFF & argb;
+                            int smallestDiff = 255 * 3;
 
-                            int smallestVal = 255 * 3;
-                            int pixColor = 0;
+                            int pixColor = -1;
                             for (int color : emojis.keySet()) {
                                 int cr = 0xFF & (color >> 16);
                                 int cg = 0xFF & (color >> 8);
                                 int cb = 0xFF & color;
                                 int tempVal = Math.abs(cr - red) + Math.abs(cg - green) + Math.abs(cb - blue);
-                                if (tempVal < smallestVal) {
-                                    smallestVal = tempVal;
+                                if (tempVal < smallestDiff) {
+                                    smallestDiff = tempVal;
                                     pixColor = color;
                                 }
                             }
-                            counts.put(pixColor, counts.containsKey(pixColor) ? counts.get(pixColor) + 1 : 1);
+                            int newVal = counts.containsKey(pixColor) ? counts.get(pixColor) + 1 : 1;
+                            counts.put(pixColor, newVal);
+                            if (newVal > maxCount) {
+                                emojiColor = pixColor;
+                                maxCount = newVal;
+                            }
                         }
                     }
-                    int maxCount = 0;
-                    int color = -1;
-                    for (int key : counts.keySet()) {
-                        if (counts.get(key) > maxCount) {
-                            color = key;
-                            maxCount = counts.get(key);
-                        }
-                    }
-                    BufferedImage emoji = emojis.get(color);
-                    for (int k = i - 15; k <= i; k++) {
-                        for (int l = j - 15; l <= j; l++) {
-                            copy[k][l] = emoji.getRGB(k % 16, l % 16);
+                    // convert 16x16 block into emoji
+                    BufferedImage emoji = emojis.get(emojiColor);
+                    for (int i = x * 16; i < x * 16 + 15 && i < image.getWidth(); i++){
+                        for (int j = y * 16; j < y * 16 + 15 && j < image.getHeight(); j++){
+                            image.setRGB(i, j, emoji.getRGB(i % 16, j % 16));
                         }
                     }
                 }
             }
-            for (int i = 0; i < copy.length; i++) {
-                for (int j = 0; j < copy[0].length; j++) {
-                    image.setRGB(i, j, copy[i][j]);
+        }
+    }
+
+    // xlow, xhi, ylow, yhi are in terms of pixels
+    private static class ParallelizeBlur extends RecursiveAction {
+        final int SEQUENTIAL_CUTOFF = 10000;
+        int xlow, xhi, ylow, yhi;
+        String filter;
+        int[] copy;
+        BufferedImage image;
+
+        public ParallelizeBlur(BufferedImage image, int[] copy, int xlow, int xhi, int ylow, int yhi, String filter) {
+            this.image = image;
+            this.copy = copy;
+            this.xlow = xlow;
+            this.xhi = xhi;
+            this.ylow = ylow;
+            this.yhi = yhi;
+            this.filter = filter;
+        }
+
+        @Override
+        public void compute() {
+            if ((xhi - xlow) * (yhi - ylow) <= SEQUENTIAL_CUTOFF) {
+                switch (filter) {
+                    case "box":
+                        box();
+                        break;
+                    case "gauss":
+                        gauss();
+                        break;
                 }
+            } else {
+                ParallelizeBlur left, right;
+                if ((xhi - xlow) > (yhi - ylow)) {
+                    left = new ParallelizeBlur(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
+                    right = new ParallelizeBlur(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
+                } else {
+                    // left is smaller, right is bigger
+                    left = new ParallelizeBlur(image, copy, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
+                    right = new ParallelizeBlur(image, copy, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
+                }
+                left.fork();
+                right.compute();
+                left.join();
+            }
+        }
+
+        // applies the box filter in a 3x3 box
+        private void box() {
+            for (int j = ylow; j < yhi; j++) {
+                for (int i = xlow; i < xhi; i++) {
+                    double[] avg = new double[3];
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            int val = getVal(i, j, x, y);
+                            /*
+                            1/9 1/9 1/9
+                            1/9 1/9 1/9
+                            1/9 1/9 1/9
+                            */
+                            avg[0] += (0xFF & (val >> 16)) * 0.111;
+                            avg[1] += (0XFF & (val >> 8)) * 0.111;
+                            avg[2] += (0xFF & val) * 0.111;
+                        }
+                    }
+                    // keep same a val, round rgb value
+                    int rgb = ((int) (Math.round(avg[0]) << 16) + ((int) Math.round(avg[1]) << 8) + (int) Math.round(avg[2]));
+                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+                }
+            }
+        }
+
+        // applies the gaussian filter in a 3x3 box
+        private void gauss() {
+            for (int j = ylow; j < yhi; j++) {
+                for (int i = xlow; i < xhi; i++) {
+                    double[] avg = new double[3];
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            int val = getVal(i, j, x, y);
+                            /*
+                            1/16 1/8 1/16
+                            1/8  1/4 1/8
+                            1/16 1/8 1/16
+                            */
+                            double gaussDistr = 0.25 * Math.pow(0.5, Math.abs(x) + Math.abs(y));
+                            avg[0] += (0xFF & (val >> 16)) * gaussDistr;
+                            avg[1] += (0xFF & (val >> 8)) * gaussDistr;
+                            avg[2] += (0xFF & val) * gaussDistr;
+                        }
+                    }
+                    // keep same argb val, round rgb value
+                    int rgb = ((int) (Math.round(avg[0]) << 16) + ((int) Math.round(avg[1]) << 8) + (int) Math.round(avg[2]));
+                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+                }
+            }
+        }
+
+        // helper getter method of neighbors
+        private int getVal(int i, int j, int x, int y){
+            if ((i + x == -1 || i + x == image.getWidth()) && (j + y == -1 || j + y == image.getHeight())) {
+                return image.getRGB(i, j) & 0xFFFFFF;
+            } else if (i + x == -1 || i + x == image.getWidth()) {
+                return image.getRGB(i, j + y) & 0xFFFFFF;
+            } else if (j + y == -1 || j + y == image.getHeight()) {
+                return image.getRGB(i + x, j) & 0xFFFFFF;
+            } else {
+                return image.getRGB(i + x, j + y) & 0xFFFFFF;
             }
         }
     }
