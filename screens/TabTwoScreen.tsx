@@ -6,10 +6,11 @@ import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import { triggerBase64Download } from 'react-base64-downloader';
+// import { triggerBase64Download } from 'react-base64-downloader';
 import * as Progress from 'react-native-progress';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { FlipType } from 'expo-image-manipulator';
+import uploadToAnonymousFilesAsync from 'anonymous-files';
 
 const { manifest } = Constants;
 
@@ -189,9 +190,10 @@ export default function ImagePickerExample() {
    * web is not supported
    */
   async function share() {
-    if(Platform.OS === 'web'){
-      alert('Sharing not available on web');
-      return;
+    if(!(await Sharing.isAvailableAsync())){
+      // TODO: something about ssl certificates and anonymousfiles on firefox
+      let remoteUri = await uploadToAnonymousFilesAsync('data:image/jpeg;base64,' + b64[b64.length - 1]);
+      makeAlert('File shared',`Image shared at ${remoteUri}`);
     } else {
       const path: string = await save();
       await Sharing.shareAsync(path).then(() => {
@@ -200,17 +202,26 @@ export default function ImagePickerExample() {
     }
   }
 
+  function downloadURI(uri: string, name: string) {
+
+  }
+
   /**
    * downloads image
    */
   async function download() {
     if (platform == 'web'){
-      triggerBase64Download("data:image/jpeg;base64," + b64[b64.length - 1], 'photo_download')
-      console.log("Image downloaded")
+      let link = document.createElement("a");
+      link.download = "download.png";
+      link.href = 'data:image/jpeg;base64,' + b64[b64.length - 1];
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log("Image downloaded - web")
     } else {
       const path: string = await save();
       MediaLibrary.saveToLibraryAsync(path).then(() => {
-        console.log("Image saved");
+        console.log("Image downloaded - mobile");
       });
     }
   }
