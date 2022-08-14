@@ -41,6 +41,8 @@ export default function ImagePickerExample() {
     {label: 'Box Blur', value: 'box'},
     {label: 'Gaussian Blur', value: 'gauss'},
     {label: 'Emojify', value: 'emoji'},
+    {label: 'Detail', value: 'detail'},
+    {label: 'Sharpen', value: 'sharp'},
   ]);
 
   // Transform state

@@ -6,14 +6,14 @@ import javax.imageio.ImageIO;
 
 //import org.eclipse.jetty.util.thread.ThreadPool;
 
-import java.awt.image.BufferedImage;
+import java.awt.image.*;
 import java.io.*;
 import java.util.*;
 
 import java.util.concurrent.*;
 
 public class SparkServer {
-    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji");
+    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "detail", "sharp");
     private static final Map<Integer, BufferedImage> emojis = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
 
@@ -108,6 +108,22 @@ public class SparkServer {
             inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy,
                     0, inputImage.getWidth());
 
+        } 
+        else if (filter.equals("detail")) {
+            // note: can clean up by making a separate copy method
+            ColorModel cm = inputImage.getColorModel();
+            boolean isAlpha = inputImage.isAlphaPremultiplied();
+            WritableRaster raster = inputImage.copyData(null);
+            BufferedImage temp = new BufferedImage(cm, raster, isAlpha, null)
+                .getSubimage(0, 0, inputImage.getWidth(), inputImage.getHeight());
+            int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
+            fjpool.invoke(new ParallelizeBlur(inputImage, copy,
+                    0, inputImage.getWidth(), 0, inputImage.getHeight(), "gauss"));
+            // then loop through and update inputImage with rgb values of (temp - copy)
+        } 
+        else if (filter.equals("sharpen")){
+            // get the detail
+            // add detail onto inputImage
         } else {
             fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15)/16,
                     0, (inputImage.getHeight() + 15)/16, filter));
@@ -260,6 +276,8 @@ public class SparkServer {
                     case "gauss":
                         gauss();
                         break;
+                    case "detail":
+
                 }
             } else {
                 ParallelizeBlur left, right;
@@ -324,6 +342,15 @@ public class SparkServer {
                     // keep same argb val, round rgb value
                     int rgb = ((int) (Math.round(avg[0]) << 16) + ((int) Math.round(avg[1]) << 8) + (int) Math.round(avg[2]));
                     copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+                }
+            }
+        }
+
+        // gets detail outline of image
+        private void detail() {
+            for(int j = ylow; j < yhi; j++){
+                for(int i = xlow; i < xhi; i++){
+
                 }
             }
         }
