@@ -13,7 +13,9 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class SparkServer {
-    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "detail", "sharp");
+    public static final Set<String> filters = Set.of("invert", "gray", "box", 
+                                                    "gauss", "emoji", "detail", 
+                                                    "sharp", "bright", "dim");
     private static final Map<Integer, BufferedImage> emojis = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
 
@@ -160,6 +162,12 @@ public class SparkServer {
                     case "emoji":
                         emojify();
                         break;
+                    case "bright":
+                        bright();
+                        break;
+                    case "dim":
+                        dim();
+                        break;
                 }
             } else {
                 System.out.print("did the threading thing");
@@ -198,6 +206,32 @@ public class SparkServer {
                     int blue = 0xFF & argb;
                     int gray = (red + green + blue) / 3;
                     image.setRGB(i, j, ((alpha << 24) | (gray << 16) | (gray << 8) | gray));
+                }
+            }
+        }
+
+        private void bright() {
+            for (int i = xlow * 16; i < xhi * 16 && i < image.getWidth(); i++) {
+                for (int j = ylow * 16; j < yhi * 16 && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int alpha = 0xFF & (argb >> 24);
+                    int red = Math.min(255, (int)((0xFF & (argb >> 16)) * 1.5));
+                    int green = Math.min(255, (int)((0xFF & (argb >> 8)) * 1.5));
+                    int blue = Math.min(255, (int)((0xFF & argb) * 1.5));
+                    image.setRGB(i, j, ((alpha << 24) | (red << 16) | (green << 8) | blue));
+                }
+            }
+        }
+
+        private void dim() {
+            for (int i = xlow * 16; i < xhi * 16 && i < image.getWidth(); i++) {
+                for (int j = ylow * 16; j < yhi * 16 && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int alpha = 0xFF & (argb >> 24);
+                    int red = 0xFF & (argb >> 16);
+                    int green = 0xFF & (argb >> 8);
+                    int blue = 0xFF & argb;
+                    image.setRGB(i, j, ((alpha << 24) | (red / 2 << 16) | (green / 2 << 8) | blue / 2));
                 }
             }
         }

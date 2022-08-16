@@ -43,6 +43,9 @@ export default function ImagePickerExample() {
     {label: 'Emojify', value: 'emoji'},
     {label: 'Detail', value: 'detail'},
     {label: 'Sharpen', value: 'sharp'},
+    {label: 'Brighten', value: 'bright'},
+    {label: 'Dim', value: 'dim'}
+
   ]);
 
   // Transform state
