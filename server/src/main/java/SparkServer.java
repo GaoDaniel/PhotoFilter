@@ -389,6 +389,50 @@ public class SparkServer {
             }
         }
 
+        private void edgeDetection(){
+
+            // assume everything is in grayscale
+            for (int j = ylow; j < yhi; j++) {
+                for (int i = xlow; i < xhi; i++) {
+                    double[] K_x = new double[3];
+                    double[] K_y = new double[3];
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            int val = getVal(i, j, x, y);
+                            // Sobel Operator
+                            /*
+                            K_x = [-1 0 1] [-2 0 2] [-1 0 1]
+                            K_y = [-1 -2 -1] [0 0 0] [1 2 1]
+                            px_val = sqrt((mag_x)^2 + (mag_y)^2)
+                             */
+                            double baseX = x - 1;
+                            if (y == 0){
+                                baseX *= 2;
+                            }
+                            double baseY = y - 1;
+                            if (x == 0) {
+                                baseY *= 2;
+                            }
+
+                            K_x[0] += (0xFF & (val >> 16)) * baseX;
+                            K_y[0] += (0xFF & (val >> 16)) * baseY;
+                            K_x[1] += (0XFF & (val >> 8)) * baseX;
+                            K_y[1] += (0xFF & (val >> 8)) * baseY;
+                            K_x[2] += (0xFF & val) * baseX;
+                            K_y[2] += (0xFF & val) * baseY;
+                        }
+                    }
+                    // keep same a val, round rgb value
+                    double[] sqrtVals = new double[3];
+                    sqrtVals[0] = Math.sqrt(K_x[0] * K_x[0] + K_y[0] + K_y[0]);
+                    sqrtVals[1] = Math.sqrt(K_x[1] * K_x[1] + K_y[1] + K_y[1]);
+                    sqrtVals[2] = Math.sqrt(K_x[2] * K_x[2] + K_y[2] + K_y[2]);
+                    int rgb = ((int) (Math.round(sqrtVals[0]) << 16) + ((int) Math.round(sqrtVals[1]) << 8) + (int) Math.round(sqrtVals[2]));
+                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+                }
+            }
+        }
+
         // helper getter method of neighbors
         private int getVal(int i, int j, int x, int y){
             if ((i + x == -1 || i + x == image.getWidth()) && (j + y == -1 || j + y == image.getHeight())) {
@@ -403,3 +447,5 @@ public class SparkServer {
         }
     }
 }
+
+
