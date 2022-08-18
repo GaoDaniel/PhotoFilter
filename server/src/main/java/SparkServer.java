@@ -16,6 +16,7 @@ public class SparkServer {
     public static final Set<String> filters = Set.of("invert", "gray", "box", 
                                                     "gauss", "emoji", "detail", 
                                                     "sharp", "bright", "dim");
+    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "detail");
     private static final Map<Integer, BufferedImage> emojis = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
 
@@ -100,32 +101,12 @@ public class SparkServer {
     }
 
     private static void filter(BufferedImage inputImage, String filter) {
-        // filter
-        // Spark.threadPool(8);
-        // fjpool.invoke(new Parallelize(inputImage, 0, inputImage.getWidth(),0, inputImage.getHeight(), filter));
-        if (filter.equals("box") || filter.equals("gauss")) {
+        if (matrixFilters.contains(filter)) {
             int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
-            fjpool.invoke(new ParallelizeBlur(inputImage, copy,
+            fjpool.invoke(new ParallelizeCopy(inputImage, copy,
                     0, inputImage.getWidth(), 0, inputImage.getHeight(), filter));
             inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy,
                     0, inputImage.getWidth());
-
-        } 
-        else if (filter.equals("detail")) {
-            // note: can clean up by making a separate copy method
-            ColorModel cm = inputImage.getColorModel();
-            boolean isAlpha = inputImage.isAlphaPremultiplied();
-            WritableRaster raster = inputImage.copyData(null);
-            BufferedImage temp = new BufferedImage(cm, raster, isAlpha, null)
-                .getSubimage(0, 0, inputImage.getWidth(), inputImage.getHeight());
-            int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
-            fjpool.invoke(new ParallelizeBlur(inputImage, copy,
-                    0, inputImage.getWidth(), 0, inputImage.getHeight(), "gauss"));
-            // then loop through and update inputImage with rgb values of (temp - copy)
-        } 
-        else if (filter.equals("sharpen")){
-            // get the detail
-            // add detail onto inputImage
         } else {
             fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15)/16,
                     0, (inputImage.getHeight() + 15)/16, filter));
@@ -283,14 +264,16 @@ public class SparkServer {
     }
 
     // xlow, xhi, ylow, yhi are in terms of pixels
-    private static class ParallelizeBlur extends RecursiveAction {
+    private static class ParallelizeCopy extends RecursiveAction {
+        public static final int ALPHA_MASK = 0xFF000000;
+        public static final int RGB_MASK = 0xFFFFFF;
         final int SEQUENTIAL_CUTOFF = 10000;
         int xlow, xhi, ylow, yhi;
         String filter;
         int[] copy;
         BufferedImage image;
 
-        public ParallelizeBlur(BufferedImage image, int[] copy, int xlow, int xhi, int ylow, int yhi, String filter) {
+        public ParallelizeCopy(BufferedImage image, int[] copy, int xlow, int xhi, int ylow, int yhi, String filter) {
             this.image = image;
             this.copy = copy;
             this.xlow = xlow;
@@ -305,23 +288,30 @@ public class SparkServer {
             if ((xhi - xlow) * (yhi - ylow) <= SEQUENTIAL_CUTOFF) {
                 switch (filter) {
                     case "box":
-                        box();
+                        matrix(new double[][]{{1.0/9, 1.0/9, 1.0/9}, {1.0/9, 1.0/9, 1.0/9}, {1.0/9, 1.0/9, 1.0/9}});
                         break;
                     case "gauss":
-                        gauss();
+                        matrix(new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
                         break;
                     case "detail":
+                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 8.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
+                        break;
+                    case "sharp":
+//                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 17.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
+                        matrix(new double[][]{{0, -0.75, 0}, {-0.75, 4, -0.75}, {0, -0.75, 0}});
+                        break;
 
                 }
             } else {
-                ParallelizeBlur left, right;
+                ParallelizeCopy left, right;
+                System.out.print("did the threading thing");
                 if ((xhi - xlow) > (yhi - ylow)) {
-                    left = new ParallelizeBlur(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
-                    right = new ParallelizeBlur(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
+                    left = new ParallelizeCopy(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
+                    right = new ParallelizeCopy(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
                 } else {
                     // left is smaller, right is bigger
-                    left = new ParallelizeBlur(image, copy, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
-                    right = new ParallelizeBlur(image, copy, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
+                    left = new ParallelizeCopy(image, copy, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
+                    right = new ParallelizeCopy(image, copy, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
                 }
                 left.fork();
                 right.compute();
@@ -329,121 +319,105 @@ public class SparkServer {
             }
         }
 
-        // applies the box filter in a 3x3 box
-        private void box() {
+        // applies matrix multiplication on input image
+        private void matrix(double[][] m){
             for (int j = ylow; j < yhi; j++) {
                 for (int i = xlow; i < xhi; i++) {
-                    double[] avg = new double[3];
-                    for (int x = -1; x <= 1; x++) {
-                        for (int y = -1; y <= 1; y++) {
-                            int val = getVal(i, j, x, y);
-                            /*
-                            1/9 1/9 1/9
-                            1/9 1/9 1/9
-                            1/9 1/9 1/9
-                            */
-                            avg[0] += (0xFF & (val >> 16)) * 0.111;
-                            avg[1] += (0XFF & (val >> 8)) * 0.111;
-                            avg[2] += (0xFF & val) * 0.111;
-                        }
-                    }
+                    int[][][] mtx = getMatrix(i, j);
+                    double r = Math.min(255.0, Math.max(0.0, mult(mtx[0], m)));
+                    double g = Math.min(255.0, Math.max(0.0, mult(mtx[1], m)));
+                    double b = Math.min(255.0, Math.max(0.0, mult(mtx[2], m)));
+
+
                     // keep same a val, round rgb value
-                    int rgb = ((int) (Math.round(avg[0]) << 16) + ((int) Math.round(avg[1]) << 8) + (int) Math.round(avg[2]));
-                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+                    int rgb = ((int) (Math.round(r) << 16) + ((int) Math.round(g) << 8) + (int) Math.round(b));
+                    copy[j * image.getWidth() + i] = (ALPHA_MASK & image.getRGB(i, j)) + rgb;
                 }
             }
         }
 
-        // applies the gaussian filter in a 3x3 box
-        private void gauss() {
-            for (int j = ylow; j < yhi; j++) {
-                for (int i = xlow; i < xhi; i++) {
-                    double[] avg = new double[3];
-                    for (int x = -1; x <= 1; x++) {
-                        for (int y = -1; y <= 1; y++) {
-                            int val = getVal(i, j, x, y);
-                            /*
-                            1/16 1/8 1/16
-                            1/8  1/4 1/8
-                            1/16 1/8 1/16
-                            */
-                            double gaussDistr = 0.25 * Math.pow(0.5, Math.abs(x) + Math.abs(y));
-                            avg[0] += (0xFF & (val >> 16)) * gaussDistr;
-                            avg[1] += (0xFF & (val >> 8)) * gaussDistr;
-                            avg[2] += (0xFF & val) * gaussDistr;
-                        }
-                    }
-                    // keep same argb val, round rgb value
-                    int rgb = ((int) (Math.round(avg[0]) << 16) + ((int) Math.round(avg[1]) << 8) + (int) Math.round(avg[2]));
-                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
+//        private void edgeDetection(){
+//
+//            // assume everything is in grayscale
+//            for (int j = ylow; j < yhi; j++) {
+//                for (int i = xlow; i < xhi; i++) {
+//                    double[] K_x = new double[3];
+//                    double[] K_y = new double[3];
+//                    for (int x = -1; x <= 1; x++) {
+//                        for (int y = -1; y <= 1; y++) {
+//                            int val = getVal(i, j, x, y);
+//                            // Sobel Operator
+//                            /*
+//                            K_x = [-1 0 1] [-2 0 2] [-1 0 1]
+//                            K_y = [-1 -2 -1] [0 0 0] [1 2 1]
+//                            px_val = sqrt((mag_x)^2 + (mag_y)^2)
+//                             */
+//                            double baseX = x - 1;
+//                            if (y == 0){
+//                                baseX *= 2;
+//                            }
+//                            double baseY = y - 1;
+//                            if (x == 0) {
+//                                baseY *= 2;
+//                            }
+//
+//                            K_x[0] += (0xFF & (val >> 16)) * baseX;
+//                            K_y[0] += (0xFF & (val >> 16)) * baseY;
+//                            K_x[1] += (0XFF & (val >> 8)) * baseX;
+//                            K_y[1] += (0xFF & (val >> 8)) * baseY;
+//                            K_x[2] += (0xFF & val) * baseX;
+//                            K_y[2] += (0xFF & val) * baseY;
+//                        }
+//                    }
+//                    // keep same a val, round rgb value
+//                    double[] sqrtVals = new double[3];
+//                    sqrtVals[0] = Math.sqrt(K_x[0] * K_x[0] + K_y[0] + K_y[0]);
+//                    sqrtVals[1] = Math.sqrt(K_x[1] * K_x[1] + K_y[1] + K_y[1]);
+//                    sqrtVals[2] = Math.sqrt(K_x[2] * K_x[2] + K_y[2] + K_y[2]);
+//                    int rgb = ((int) (Math.round(sqrtVals[0]) << 16) + ((int) Math.round(sqrtVals[1]) << 8) + (int) Math.round(sqrtVals[2]));
+//                    copy[j * image.getWidth() + i] = (ALPHA_MASK & image.getRGB(i, j)) + rgb;
+//                }
+//            }
+//        }
+
+        // helper multiplication method
+        private double mult(int[][] a, double[][] b){
+            double res = 0;
+//            for (int i = 0; i < 3; i++){
+//                for (int j = 0; j < 3; j++){
+//                    for (int k = 0; k < 3; k++){
+//                        res += a[i][k]*b[k][j];
+//                    }
+//                }
+//            }
+            for (int i = 0; i < 3; i++){
+                for (int j = 0; j < 3; j++){
+                    res += a[i][j] * b[i][j];
                 }
             }
+            return res;
         }
-
-        // gets detail outline of image
-        private void detail() {
-            for(int j = ylow; j < yhi; j++){
-                for(int i = xlow; i < xhi; i++){
-
-                }
-            }
-        }
-
-        private void edgeDetection(){
-
-            // assume everything is in grayscale
-            for (int j = ylow; j < yhi; j++) {
-                for (int i = xlow; i < xhi; i++) {
-                    double[] K_x = new double[3];
-                    double[] K_y = new double[3];
-                    for (int x = -1; x <= 1; x++) {
-                        for (int y = -1; y <= 1; y++) {
-                            int val = getVal(i, j, x, y);
-                            // Sobel Operator
-                            /*
-                            K_x = [-1 0 1] [-2 0 2] [-1 0 1]
-                            K_y = [-1 -2 -1] [0 0 0] [1 2 1]
-                            px_val = sqrt((mag_x)^2 + (mag_y)^2)
-                             */
-                            double baseX = x - 1;
-                            if (y == 0){
-                                baseX *= 2;
-                            }
-                            double baseY = y - 1;
-                            if (x == 0) {
-                                baseY *= 2;
-                            }
-
-                            K_x[0] += (0xFF & (val >> 16)) * baseX;
-                            K_y[0] += (0xFF & (val >> 16)) * baseY;
-                            K_x[1] += (0XFF & (val >> 8)) * baseX;
-                            K_y[1] += (0xFF & (val >> 8)) * baseY;
-                            K_x[2] += (0xFF & val) * baseX;
-                            K_y[2] += (0xFF & val) * baseY;
-                        }
-                    }
-                    // keep same a val, round rgb value
-                    double[] sqrtVals = new double[3];
-                    sqrtVals[0] = Math.sqrt(K_x[0] * K_x[0] + K_y[0] + K_y[0]);
-                    sqrtVals[1] = Math.sqrt(K_x[1] * K_x[1] + K_y[1] + K_y[1]);
-                    sqrtVals[2] = Math.sqrt(K_x[2] * K_x[2] + K_y[2] + K_y[2]);
-                    int rgb = ((int) (Math.round(sqrtVals[0]) << 16) + ((int) Math.round(sqrtVals[1]) << 8) + (int) Math.round(sqrtVals[2]));
-                    copy[j * image.getWidth() + i] = (0xFF000000 & image.getRGB(i, j)) + rgb;
-                }
-            }
-        }
-
         // helper getter method of neighbors
-        private int getVal(int i, int j, int x, int y){
-            if ((i + x == -1 || i + x == image.getWidth()) && (j + y == -1 || j + y == image.getHeight())) {
-                return image.getRGB(i, j) & 0xFFFFFF;
-            } else if (i + x == -1 || i + x == image.getWidth()) {
-                return image.getRGB(i, j + y) & 0xFFFFFF;
-            } else if (j + y == -1 || j + y == image.getHeight()) {
-                return image.getRGB(i + x, j) & 0xFFFFFF;
-            } else {
-                return image.getRGB(i + x, j + y) & 0xFFFFFF;
+        private int[][][] getMatrix(int i, int j){
+            int[][][] res = new int[3][3][3];
+            for (int x = -1; x <= 1; x++){
+                for (int y = -1; y <= 1; y++){
+                    int rgb;
+                    if ((i + x == -1 || i + x == image.getWidth()) && (j + y == -1 || j + y == image.getHeight())) {
+                        rgb = image.getRGB(i, j) & RGB_MASK;
+                    } else if (i + x == -1 || i + x == image.getWidth()) {
+                        rgb = image.getRGB(i, j + y) & RGB_MASK;
+                    } else if (j + y == -1 || j + y == image.getHeight()) {
+                        rgb =  image.getRGB(i + x, j) & RGB_MASK;
+                    } else {
+                        rgb = image.getRGB(i + x, j + y) & RGB_MASK;
+                    }
+                    res[0][x + 1][y + 1] = (rgb >> 16) & 0xFF;
+                    res[1][x + 1][y + 1] = (rgb >> 8) & 0xFF;
+                    res[2][x + 1][y + 1] = rgb & 0xFF;
+                }
             }
+            return res;
         }
     }
 }
