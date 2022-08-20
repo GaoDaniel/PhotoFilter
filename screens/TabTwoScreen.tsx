@@ -41,7 +41,7 @@ export default function ImagePickerExample() {
     {label: 'Box Blur', value: 'box'},
     {label: 'Gaussian Blur', value: 'gauss'},
     {label: 'Emojify', value: 'emoji'},
-    {label: 'Detail', value: 'detail'},
+    {label: 'Outline', value: 'outline'},
     {label: 'Sharpen', value: 'sharp'},
     {label: 'Brighten', value: 'bright'},
     {label: 'Dim', value: 'dim'}
@@ -74,11 +74,13 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-      base64: true
+      base64: true,
+      exif: true
     });
     if (!pickerResult.cancelled && pickerResult.base64) {
       setOriginIndex([...originIndex, b64.length]);
       setImage(pickerResult.base64);
+      console.log("exif " + pickerResult.exif);
     }
   }
 
@@ -98,11 +100,13 @@ export default function ImagePickerExample() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-      base64: true
+      base64: true,
+      exif: true
     });
     if(!result.cancelled && result.base64){
       setOriginIndex([...originIndex, b64.length]);
       setImage(result.base64);
+      console.log(result.exif)
     }
   }
 

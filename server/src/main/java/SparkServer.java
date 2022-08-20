@@ -14,9 +14,9 @@ import java.util.concurrent.*;
 
 public class SparkServer {
     public static final Set<String> filters = Set.of("invert", "gray", "box", 
-                                                    "gauss", "emoji", "detail", 
+                                                    "gauss", "emoji", "outline", 
                                                     "sharp", "bright", "dim");
-    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "detail");
+    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline");
     private static final Map<Integer, BufferedImage> emojis = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
 
@@ -151,7 +151,6 @@ public class SparkServer {
                         break;
                 }
             } else {
-                System.out.print("did the threading thing");
                 Parallelize left, right;
                 if ((xhi - xlow) > (yhi - ylow)) {
                     left = new Parallelize(image, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
@@ -293,8 +292,8 @@ public class SparkServer {
                     case "gauss":
                         matrix(new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
                         break;
-                    case "detail":
-                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 8.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
+                    case "outline":
+                        matrix(new double[][]{{-1.0, -1.0, -1.0}, {-1.0, 8.0, -1.0}, {-1.0, -1.0, -1.0}});
                         break;
                     case "sharp":
 //                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 17.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
@@ -304,7 +303,6 @@ public class SparkServer {
                 }
             } else {
                 ParallelizeCopy left, right;
-                System.out.print("did the threading thing");
                 if ((xhi - xlow) > (yhi - ylow)) {
                     left = new ParallelizeCopy(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
                     right = new ParallelizeCopy(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
@@ -319,7 +317,7 @@ public class SparkServer {
             }
         }
 
-        // applies matrix multiplication on input image
+        // applies modified matrix multiplication on input image
         private void matrix(double[][] m){
             for (int j = ylow; j < yhi; j++) {
                 for (int i = xlow; i < xhi; i++) {
@@ -381,15 +379,9 @@ public class SparkServer {
 //        }
 
         // helper multiplication method
+        // multiplies corresponding indices and adds them
         private double mult(int[][] a, double[][] b){
             double res = 0;
-//            for (int i = 0; i < 3; i++){
-//                for (int j = 0; j < 3; j++){
-//                    for (int k = 0; k < 3; k++){
-//                        res += a[i][k]*b[k][j];
-//                    }
-//                }
-//            }
             for (int i = 0; i < 3; i++){
                 for (int j = 0; j < 3; j++){
                     res += a[i][j] * b[i][j];
@@ -398,6 +390,7 @@ public class SparkServer {
             return res;
         }
         // helper getter method of neighbors
+        // returns three 3x3 matrices of r g b values of pixels around i, j
         private int[][][] getMatrix(int i, int j){
             int[][][] res = new int[3][3][3];
             for (int x = -1; x <= 1; x++){
