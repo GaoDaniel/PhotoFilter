@@ -208,14 +208,13 @@ public class SparkServer {
             for (int x = xlow; x < xhi; x++) {
                 for (int y = ylow; y < yhi; y++) {
                     Map<BufferedImage, Integer> distance = new HashMap<>();
-                    PriorityQueue<BufferedImage> closest = new PriorityQueue<>(Comparator.comparingInt(distance::get));
                     for (BufferedImage image : emojis) {
                         distance.put(image, 0);
                     }
 
                     // get distances by comparing pixel values for every emoji, add all up
-                    for (int i = x * BLOCK_LENGTH; i < x * (BLOCK_LENGTH + 1) - 1 && i < image.getWidth(); i++) {
-                        for (int j = y * BLOCK_LENGTH; j < y * (BLOCK_LENGTH + 1) - 1 && j < image.getHeight(); j++) {
+                    for (int i = x * BLOCK_LENGTH; i < (x + 1) * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                        for (int j = y * BLOCK_LENGTH; j < (y + 1) * BLOCK_LENGTH && j < image.getHeight(); j++) {
                             int argb = image.getRGB(i, j);
                             int red = COLOR & (argb >> 16);
                             int green = COLOR & (argb >> 8);
@@ -230,11 +229,20 @@ public class SparkServer {
                             }
                         }
                     }
-                    closest.addAll(emojis);
+                    BufferedImage emoji = null;
+//                    System.out.println(distance);
+                    int minDist = Integer.MAX_VALUE;
+                    for (BufferedImage image : distance.keySet()){
+                        if (distance.get(image) < minDist){
+                            minDist = distance.get(image);
+                            emoji = image;
+                        }
+                    }
+
+                    assert emoji != null;
                     // convert 16x16 block into emoji
-                    BufferedImage emoji = closest.remove();
-                    for (int i = x * BLOCK_LENGTH; i < x * (BLOCK_LENGTH + 1) - 1 && i < image.getWidth(); i++) {
-                        for (int j = y * BLOCK_LENGTH; j < y * (BLOCK_LENGTH + 1) - 1 && j < image.getHeight(); j++) {
+                    for (int i = x * BLOCK_LENGTH; i < (x + 1) * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                        for (int j = y * BLOCK_LENGTH; j < (y + 1) * BLOCK_LENGTH && j < image.getHeight(); j++) {
                             image.setRGB(i, j, emoji.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH));
                         }
                     }
