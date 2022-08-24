@@ -20,6 +20,7 @@ public class SparkServer {
     public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "outline", "sharp", "bright", "dim");
     private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline");
     private static final Set<BufferedImage> emojis = new HashSet<>();
+    private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
 
     /*
@@ -85,8 +86,20 @@ public class SparkServer {
             File[] images = new File(location).listFiles();
             assert images != null;
             for (File image : images) {
-                emojis.add(ImageIO.read(image));
+                BufferedImage emoji = ImageIO.read(image);
+                int count = 0;
+                for (int i = 0; i < emoji.getWidth(); i++){
+                    for (int j = 0; j < emoji.getHeight(); j++){
+                        // count number of transparent pixels
+                        if ((emoji.getRGB(i, j) & ALPHA_MASK) != 0){
+                            count++;
+                        }
+                    }
+                }
+                emojis.add(emoji);
+                numOpaque.put(emoji, count);
             }
+            System.out.println(numOpaque.values());
         } catch (IOException e) {
             System.out.println("Input error: " + e);
         }
@@ -207,9 +220,9 @@ public class SparkServer {
         private void emojify() {
             for (int x = xlow; x < xhi; x++) {
                 for (int y = ylow; y < yhi; y++) {
-                    Map<BufferedImage, Integer> distance = new HashMap<>();
+                    Map<BufferedImage, Double> distance = new HashMap<>();
                     for (BufferedImage image : emojis) {
-                        distance.put(image, 0);
+                        distance.put(image, 0.0);
                     }
 
                     // get distances by comparing pixel values for every emoji, add all up
@@ -221,20 +234,24 @@ public class SparkServer {
                             int blue = COLOR & argb;
 
                             for (BufferedImage image : emojis) {
-                                int color = image.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH) & RGB_MASK;
-                                int cr = COLOR & (color >> 16);
-                                int cg = COLOR & (color >> 8);
-                                int cb = COLOR & color;
-                                distance.put(image, distance.get(image) + Math.abs(cr - red) + Math.abs(cg - green) + Math.abs(cb - blue));
+                                int color = image.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH);
+                                if ((color & ALPHA_MASK) != 0) {
+                                    int cr = COLOR & (color >> 16);
+                                    int cg = COLOR & (color >> 8);
+                                    int cb = COLOR & color;
+                                    double sumDist = (double) Math.abs(cr - red) + Math.abs(cg - green) + Math.abs(cb - blue);
+                                    distance.put(image, distance.get(image) + sumDist/numOpaque.get(image));
+                                }
                             }
                         }
                     }
                     BufferedImage emoji = null;
-//                    System.out.println(distance);
-                    int minDist = Integer.MAX_VALUE;
+//                    System.out.println(distance.values());
+                    double minDist = 255 * 3.0;
                     for (BufferedImage image : distance.keySet()){
                         if (distance.get(image) < minDist){
                             minDist = distance.get(image);
+                            System.out.println(minDist);
                             emoji = image;
                         }
                     }
