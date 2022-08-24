@@ -44,8 +44,10 @@ export default function ImagePickerExample() {
     {label: 'Outline', value: 'outline'},
     {label: 'Sharpen', value: 'sharp'},
     {label: 'Brighten', value: 'bright'},
-    {label: 'Dim', value: 'dim'}
-
+    {label: 'Dim', value: 'dim'},
+    {label: 'Test1', value: 'test1'},
+    {label: 'Test2', value: 'test2'},
+    {label: 'Test3', value: 'test3'},
   ]);
 
   // Transform state

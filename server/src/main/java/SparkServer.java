@@ -17,8 +17,9 @@ public class SparkServer {
     public static final int RGB_MASK = 0xFFFFFF;
     public static final int COLOR = 0xFF;
 
-    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "outline", "sharp", "bright", "dim");
-    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline");
+    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", 
+                                            "emoji", "outline", "sharp", "bright", "dim", "test1", "test2", "test3");
+    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3");
     private static final Set<BufferedImage> emojis = new HashSet<>();
     private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
@@ -297,11 +298,23 @@ public class SparkServer {
                         matrix(new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
                         break;
                     case "outline":
+                    // matrix(new double[][]{{0, 1, 0}, {1, -4, 1}, {0, 1, 0}});
+                    // matrix(new double[][]{{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}});
+                    // matrix(new double[][]{{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}});
                         matrix(new double[][]{{-1.0, -1.0, -1.0}, {-1.0, 8.0, -1.0}, {-1.0, -1.0, -1.0}});
                         break;
                     case "sharp":
 //                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 17.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
                         matrix(new double[][]{{0, -0.75, 0}, {-0.75, 4, -0.75}, {0, -0.75, 0}});
+                        break;
+                    case "test1":
+                        matrix(new double[][]{{-1, 0, 1}, {-1, 1, 1}, {-1, 0, 1}});
+                        break;
+                    case "test2":
+                        matrix(new double[][]{{1, 1, 1}, {0, 1, 0}, {-1, -1, -1}});
+                        break;
+                    case "test3":
+                        matrix(new double[][]{{-1, -1, -1}, {0, 1, 0}, {1, 1, 1}});
                         break;
                 }
             } else {
