@@ -18,8 +18,8 @@ public class SparkServer {
     public static final int COLOR = 0xFF;
 
     public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", 
-                                            "emoji", "outline", "sharp", "bright", "dim", "test1", "test2", "test3");
-    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3");
+                                            "emoji", "outline", "sharp", "bright", "dim", "test1", "test2", "test3", "noise", "sat", "unsat");
+    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3", "noise");
     private static final Set<BufferedImage> emojis = new HashSet<>();
     private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
@@ -149,10 +149,16 @@ public class SparkServer {
                         emojify();
                         break;
                     case "bright":
-                        bright();
+                        bright(false);
                         break;
                     case "dim":
-                        dim();
+                        bright(true);
+                        break;
+                    case "sat":
+                        saturate(false);
+                        break;
+                    case "unsat":
+                        saturate(true);
                         break;
                 }
             } else {
@@ -194,26 +200,31 @@ public class SparkServer {
             }
         }
 
-        private void bright() {
+        private void bright(boolean reverse) {
+            double mult = reverse ? 0.5 : 1.5;
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
-                    int red = Math.min(255, (int) ((COLOR & (argb >> 16)) * 1.5));
-                    int green = Math.min(255, (int) ((COLOR & (argb >> 8)) * 1.5));
-                    int blue = Math.min(255, (int) ((COLOR & argb) * 1.5));
+                    int red = Math.min(255, (int) ((COLOR & (argb >> 16)) * mult));
+                    int green = Math.min(255, (int) ((COLOR & (argb >> 8)) * mult));
+                    int blue = Math.min(255, (int) ((COLOR & argb) * mult));
                     image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
                 }
             }
         }
 
-        private void dim() {
+        private void saturate(boolean reverse) {
+            double mult = reverse ? -0.5 : 0.5;
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
                     int red = COLOR & (argb >> 16);
                     int green = COLOR & (argb >> 8);
                     int blue = COLOR & argb;
-                    image.setRGB(i, j, ((argb & ALPHA_MASK) | (red / 2 << 16) | (green / 2 << 8) | blue / 2));
+                    red = Math.min(255, Math.max(0, red + (int) ((red - 128) * mult)));
+                    green = Math.min(255, Math.max(0, green + (int) ((green - 128) * mult)));
+                    blue = Math.min(255, Math.max(0, blue + (int) ((blue - 128) * mult)));
+                    image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
                 }
             }
         }
@@ -252,7 +263,7 @@ public class SparkServer {
                     for (BufferedImage image : distance.keySet()){
                         if (distance.get(image) < minDist){
                             minDist = distance.get(image);
-                            System.out.println(minDist);
+//                            System.out.println(minDist);
                             emoji = image;
                         }
                     }
@@ -301,7 +312,7 @@ public class SparkServer {
                     // matrix(new double[][]{{0, 1, 0}, {1, -4, 1}, {0, 1, 0}});
                     // matrix(new double[][]{{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}});
                     // matrix(new double[][]{{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}});
-                        matrix(new double[][]{{-1.0, -1.0, -1.0}, {-1.0, 8.0, -1.0}, {-1.0, -1.0, -1.0}});
+                        matrix(new double[][]{{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}});
                         break;
                     case "sharp":
 //                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 17.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
@@ -315,6 +326,9 @@ public class SparkServer {
                         break;
                     case "test3":
                         matrix(new double[][]{{-1, -1, -1}, {0, 1, 0}, {1, 1, 1}});
+                        break;
+                    case "noise":
+                        median();
                         break;
                 }
             } else {
@@ -344,6 +358,41 @@ public class SparkServer {
 
                     // keep same alpha val, round rgb value
                     int rgb = ((int) (Math.round(r) << 16) + ((int) Math.round(g) << 8) + (int) Math.round(b));
+                    copy[j * image.getWidth() + i] = (ALPHA_MASK & image.getRGB(i, j)) | rgb;
+                }
+            }
+        }
+
+        private void median(){
+            for (int j = ylow; j < yhi; j++) {
+                for (int i = xlow; i < xhi; i++) {
+                    List<Integer> r = new ArrayList<>();
+                    List<Integer> g = new ArrayList<>();
+                    List<Integer> b = new ArrayList<>();
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = -1; y <= 1; y++) {
+                            if (i + x != -1 && i + x != image.getWidth() && j + y != -1 && j + y != image.getHeight()) {
+                                int rgb = image.getRGB(i + x, j) & RGB_MASK;
+                                r.add((rgb >> 16) & COLOR);
+                                g.add((rgb >> 8) & COLOR);
+                                b.add((rgb & COLOR));
+                            }
+                        }
+                    }
+                    Collections.sort(r);
+                    Collections.sort(g);
+                    Collections.sort(b);
+                    int med = r.size()/2;
+                    int rmed = r.get(med);
+                    int gmed = g.get(med);
+                    int bmed = b.get(med);
+                    if (r.size() % 2 == 0){
+                        rmed = (rmed + r.get(med - 1))/2;
+                        gmed = (gmed + g.get(med - 1))/2;
+                        bmed = (bmed + b.get(med - 1))/2;
+                    }
+                    // keep same alpha val, round rgb value
+                    int rgb = (rmed << 16) + (gmed << 8) + bmed;
                     copy[j * image.getWidth() + i] = (ALPHA_MASK & image.getRGB(i, j)) | rgb;
                 }
             }
