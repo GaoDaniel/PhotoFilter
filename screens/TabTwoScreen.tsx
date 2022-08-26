@@ -11,6 +11,7 @@ import * as Progress from 'react-native-progress';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { FlipType } from 'expo-image-manipulator';
 import uploadToAnonymousFilesAsync from 'anonymous-files';
+import Slider from '@react-native-community/slider';
 
 const { manifest } = Constants;
 
@@ -50,7 +51,10 @@ export default function ImagePickerExample() {
     {label: 'Test3', value: 'test3'},
     {label: 'Remove Noise', value: 'noise'},
     {label: 'Saturate', value: 'sat'},
-    {label: 'Unsaturate', value: 'unsat'},
+    {label: 'Fade', value: 'fade'},
+    {label: 'Red', value: 'red'},
+    {label: 'Green', value: 'green'},
+    {label: 'Blue', value: 'blue'},
   ]);
 
   // Transform state
@@ -62,6 +66,9 @@ export default function ImagePickerExample() {
     {label: 'Flip Horizontal', value: 'hflip'},
     {label: 'Flip Vertical', value: 'vflip'},
   ])
+
+  // Slider state
+  const [valueS, setValueS] = useState(0);
 
   /**
    * Opens the camera roll on the device, alerting user if access is denied
@@ -369,6 +376,18 @@ export default function ImagePickerExample() {
                 placeholder="Select a Filter"
             />
           </View>
+
+          <Slider style={styles.button}
+              minimumValue={0}
+              maximumValue={1}
+              minimumTrackTintColor="#FFFFFF"
+              maximumTrackTintColor="#000000"
+              thumbTintColor='magenta'
+              disabled={b64.length === 0 || valueF === '' || loadingFilter}
+              onSlidingComplete={setValueS}
+          />
+
+          <Text> Current Slider Value: {valueS}</Text>
 
           <View style={styles.rowContainer}>
             <TouchableOpacity

@@ -17,8 +17,9 @@ public class SparkServer {
     public static final int RGB_MASK = 0xFFFFFF;
     public static final int COLOR = 0xFF;
 
-    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", 
-                                            "emoji", "outline", "sharp", "bright", "dim", "test1", "test2", "test3", "noise", "sat", "unsat");
+    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "outline", "sharp", 
+                                                            "bright", "dim", "test1", "test2", "test3", "noise", "sat", "fade", 
+                                                            "red", "green", "blue");
     private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3", "noise");
     private static final Set<BufferedImage> emojis = new HashSet<>();
     private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
@@ -157,8 +158,17 @@ public class SparkServer {
                     case "sat":
                         saturate(false);
                         break;
-                    case "unsat":
+                    case "fade":
                         saturate(true);
+                        break;
+                    case "red":
+                        redMod(false);
+                        break;
+                    case "green":
+                        greenMod(false);
+                        break;
+                    case "blue":
+                        blueMod(false);
                         break;
                 }
             } else {
@@ -224,6 +234,45 @@ public class SparkServer {
                     red = Math.min(255, Math.max(0, red + (int) ((red - 128) * mult)));
                     green = Math.min(255, Math.max(0, green + (int) ((green - 128) * mult)));
                     blue = Math.min(255, Math.max(0, blue + (int) ((blue - 128) * mult)));
+                    image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
+                }
+            }
+        }
+
+        private void redMod(boolean reverse){
+            double mult = reverse ? 0.5 : 1.5;
+            for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int red = Math.min(255, (int) ((COLOR & (argb >> 16)) * mult));
+                    int green = COLOR & (argb >> 8);
+                    int blue = COLOR & argb;
+                    image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
+                }
+            }
+        }
+
+        private void greenMod(boolean reverse){
+            double mult = reverse ? 0.5 : 1.5;
+            for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int red = COLOR & (argb >> 16);
+                    int green = Math.min(255, (int) ((COLOR & (argb >> 8)) * mult));
+                    int blue = COLOR & argb;
+                    image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
+                }
+            }
+        }
+
+        private void blueMod(boolean reverse){
+            double mult = reverse ? 0.5 : 1.5;
+            for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int red = COLOR & (argb >> 16);
+                    int green = COLOR & (argb >> 8);
+                    int blue = Math.min(255, (int) ((COLOR & argb) * mult)); 
                     image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
                 }
             }
