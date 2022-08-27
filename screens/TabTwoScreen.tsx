@@ -55,6 +55,7 @@ export default function ImagePickerExample() {
     {label: 'Red', value: 'red'},
     {label: 'Green', value: 'green'},
     {label: 'Blue', value: 'blue'},
+    {label: 'Black and White', value: 'bw'}
   ]);
 
   // Transform state
@@ -221,10 +222,6 @@ export default function ImagePickerExample() {
         console.log("Image shared");
       });
     }
-  }
-
-  function downloadURI(uri: string, name: string) {
-
   }
 
   /**

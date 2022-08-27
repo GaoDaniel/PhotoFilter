@@ -19,7 +19,7 @@ public class SparkServer {
 
     public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "outline", "sharp", 
                                                             "bright", "dim", "test1", "test2", "test3", "noise", "sat", "fade", 
-                                                            "red", "green", "blue");
+                                                            "red", "green", "blue", "bw");
     private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3", "noise");
     private static final Set<BufferedImage> emojis = new HashSet<>();
     private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
@@ -84,7 +84,7 @@ public class SparkServer {
     // adds BufferedImages of emojis to set
     private static void populateEmojis() {
         try {
-            String location = "src/main/resources";
+            String location = "src/main/resources/emojis";
             File[] images = new File(location).listFiles();
             assert images != null;
             for (File image : images) {
@@ -170,6 +170,9 @@ public class SparkServer {
                     case "blue":
                         blueMod(false);
                         break;
+                    case "bw":
+                        blackWhite();
+                        break;
                 }
             } else {
                 Parallelize left, right;
@@ -206,6 +209,22 @@ public class SparkServer {
                     int blue = COLOR & argb;
                     int gray = (red + green + blue) / 3;
                     image.setRGB(i, j, ((argb & ALPHA_MASK) | (gray << 16) | (gray << 8) | gray));
+                }
+            }
+        }
+
+        private void blackWhite() {
+            for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
+                for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
+                    int argb = image.getRGB(i, j);
+                    int red = COLOR & (argb >> 16);
+                    int green = COLOR & (argb >> 8);
+                    int blue = COLOR & argb;
+                    int newColor = 0;
+                    if ((red + green + blue) / 3 >= 128){
+                        newColor = 0xFFFFFF;
+                    }
+                    image.setRGB(i, j, ((argb & ALPHA_MASK) | newColor));
                 }
             }
         }
@@ -321,7 +340,12 @@ public class SparkServer {
                     // convert 16x16 block into emoji
                     for (int i = x * BLOCK_LENGTH; i < (x + 1) * BLOCK_LENGTH && i < image.getWidth(); i++) {
                         for (int j = y * BLOCK_LENGTH; j < (y + 1) * BLOCK_LENGTH && j < image.getHeight(); j++) {
-                            image.setRGB(i, j, emoji.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH));
+                            int newColor = emoji.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH);
+                            // keeps same color if emoji is transparent
+//                            if ((newColor & ALPHA_MASK) == 0){
+//                                newColor = ALPHA_MASK | image.getRGB(i, j);
+//                            }
+                            image.setRGB(i, j, newColor);
                         }
                     }
                 }
