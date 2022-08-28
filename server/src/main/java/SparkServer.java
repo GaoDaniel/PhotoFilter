@@ -18,9 +18,11 @@ public class SparkServer {
     public static final int COLOR = 0xFF;
 
     public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "outline", "sharp", 
-                                                            "bright", "dim", "test1", "test2", "test3", "noise", "sat", "fade", 
+                                                            "bright", "test1", "test2", "test3", "noise", "sat", 
                                                             "red", "green", "blue", "bw");
-    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", "test1", "test2", "test3", "noise");
+    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline", 
+                                                            "test1", "test2", "test3", "noise");
+    // intFilters: "box", "gauss", "sharp", "bright", "sat", "red", "green", "blue"
     private static final Set<BufferedImage> emojis = new HashSet<>();
     private static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
     private static final ForkJoinPool fjpool = new ForkJoinPool();
@@ -39,6 +41,12 @@ public class SparkServer {
         Spark.post("/filtering", (request, response) -> {
             String base64 = request.body();
             String filter = request.queryParams("filter");
+            int intensity = 0;
+            try {
+                intensity = Integer.parseInt(request.queryParams("int"));
+            } catch (NumberFormatException e) {
+                Spark.halt(402, "bad int format");
+            }
 
             if (base64 == null || filter == null) {
                 Spark.halt(400, "missing one of base64 or filter");
@@ -67,7 +75,7 @@ public class SparkServer {
             }
 
             // filter
-            filter(inputImage, filter);
+            filter(inputImage, filter, intensity);
 
             // convert back to base64 uri
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -108,13 +116,13 @@ public class SparkServer {
     }
 
     // does parallelized filter based on the filter type
-    private static void filter(BufferedImage inputImage, String filter) {
+    private static void filter(BufferedImage inputImage, String filter, int intensity) {
         if (matrixFilters.contains(filter)) {
             int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
-            fjpool.invoke(new ParallelizeCopy(inputImage, copy, 0, inputImage.getWidth(), 0, inputImage.getHeight(), filter));
+            fjpool.invoke(new ParallelizeCopy(inputImage, copy, 0, inputImage.getWidth(), 0, inputImage.getHeight(), filter, intensity));
             inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy, 0, inputImage.getWidth());
         } else {
-            fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15) / 16, 0, (inputImage.getHeight() + 15) / 16, filter));
+            fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15) / 16, 0, (inputImage.getHeight() + 15) / 16, filter, intensity));
         }
     }
 
@@ -123,17 +131,18 @@ public class SparkServer {
         // final int SEQUENTIAL_CUTOFF = 10000;
         final int SEQUENTIAL_CUTOFF = 4;
         final int BLOCK_LENGTH = 16;
-        int xlow, xhi, ylow, yhi;
+        int xlow, xhi, ylow, yhi, intensity;
         String filter;
         BufferedImage image;
 
-        public Parallelize(BufferedImage image, int xlow, int xhi, int ylow, int yhi, String filter) {
+        public Parallelize(BufferedImage image, int xlow, int xhi, int ylow, int yhi, String filter, int intensity) {
             this.image = image;
             this.xlow = xlow;
             this.xhi = xhi;
             this.ylow = ylow;
             this.yhi = yhi;
             this.filter = filter;
+            this.intensity = intensity;
         }
 
         @Override
@@ -150,25 +159,19 @@ public class SparkServer {
                         emojify();
                         break;
                     case "bright":
-                        bright(false);
-                        break;
-                    case "dim":
-                        bright(true);
+                        bright(intensity);
                         break;
                     case "sat":
-                        saturate(false);
-                        break;
-                    case "fade":
-                        saturate(true);
+                        saturate(intensity);
                         break;
                     case "red":
-                        redMod(false);
+                        redMod(intensity);
                         break;
                     case "green":
-                        greenMod(false);
+                        greenMod(intensity);
                         break;
                     case "blue":
-                        blueMod(false);
+                        blueMod(intensity);
                         break;
                     case "bw":
                         blackWhite();
@@ -177,12 +180,12 @@ public class SparkServer {
             } else {
                 Parallelize left, right;
                 if ((xhi - xlow) > (yhi - ylow)) {
-                    left = new Parallelize(image, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
-                    right = new Parallelize(image, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
+                    left = new Parallelize(image, xlow, (xhi + xlow) / 2, ylow, yhi, filter, intensity);
+                    right = new Parallelize(image, (xhi + xlow) / 2, xhi, ylow, yhi, filter, intensity);
                 } else {
                     // left is smaller, right is bigger
-                    left = new Parallelize(image, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
-                    right = new Parallelize(image, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
+                    left = new Parallelize(image, xlow, xhi, ylow, (yhi + ylow) / 2, filter, intensity);
+                    right = new Parallelize(image, xlow, xhi, (yhi + ylow) / 2, yhi, filter, intensity);
                 }
                 left.fork();
                 right.compute();
@@ -229,8 +232,8 @@ public class SparkServer {
             }
         }
 
-        private void bright(boolean reverse) {
-            double mult = reverse ? 0.5 : 1.5;
+        private void bright(int intensity) {
+            double mult = Math.pow(2, intensity/50.0);            
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
@@ -242,24 +245,24 @@ public class SparkServer {
             }
         }
 
-        private void saturate(boolean reverse) {
-            double mult = reverse ? -0.5 : 0.5;
+        private void saturate(int intensity) {
+            double mult = Math.pow(2, intensity/100.0);
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
                     int red = COLOR & (argb >> 16);
                     int green = COLOR & (argb >> 8);
                     int blue = COLOR & argb;
-                    red = Math.min(255, Math.max(0, red + (int) ((red - 128) * mult)));
-                    green = Math.min(255, Math.max(0, green + (int) ((green - 128) * mult)));
-                    blue = Math.min(255, Math.max(0, blue + (int) ((blue - 128) * mult)));
+                    red = Math.min(255, Math.max(0, 128 + (int) ((red - 128) * mult)));
+                    green = Math.min(255, Math.max(0, 128 + (int) ((green - 128) * mult)));
+                    blue = Math.min(255, Math.max(0, 128 + (int) ((blue - 128) * mult)));
                     image.setRGB(i, j, ((argb & ALPHA_MASK) | (red << 16) | (green << 8) | blue));
                 }
             }
         }
 
-        private void redMod(boolean reverse){
-            double mult = reverse ? 0.5 : 1.5;
+        private void redMod(int intensity){
+            double mult = Math.pow(2, intensity/50.0); 
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
@@ -271,8 +274,8 @@ public class SparkServer {
             }
         }
 
-        private void greenMod(boolean reverse){
-            double mult = reverse ? 0.5 : 1.5;
+        private void greenMod(int intensity){
+            double mult = Math.pow(2, intensity/50.0); 
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
@@ -284,8 +287,8 @@ public class SparkServer {
             }
         }
 
-        private void blueMod(boolean reverse){
-            double mult = reverse ? 0.5 : 1.5;
+        private void blueMod(int intensity){
+            double mult = Math.pow(2, intensity/50.0); 
             for (int i = xlow * BLOCK_LENGTH; i < xhi * BLOCK_LENGTH && i < image.getWidth(); i++) {
                 for (int j = ylow * BLOCK_LENGTH; j < yhi * BLOCK_LENGTH && j < image.getHeight(); j++) {
                     int argb = image.getRGB(i, j);
@@ -356,12 +359,12 @@ public class SparkServer {
     // xlow, xhi, ylow, yhi are in terms of pixels
     private static class ParallelizeCopy extends RecursiveAction {
         final int SEQUENTIAL_CUTOFF = 10000;
-        int xlow, xhi, ylow, yhi;
+        int xlow, xhi, ylow, yhi, intensity;
         String filter;
         int[] copy;
         BufferedImage image;
 
-        public ParallelizeCopy(BufferedImage image, int[] copy, int xlow, int xhi, int ylow, int yhi, String filter) {
+        public ParallelizeCopy(BufferedImage image, int[] copy, int xlow, int xhi, int ylow, int yhi, String filter, int intensity) {
             this.image = image;
             this.copy = copy;
             this.xlow = xlow;
@@ -369,6 +372,7 @@ public class SparkServer {
             this.ylow = ylow;
             this.yhi = yhi;
             this.filter = filter;
+            this.intensity = intensity;
         }
 
         @Override
@@ -388,17 +392,20 @@ public class SparkServer {
                         matrix(new double[][]{{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}});
                         break;
                     case "sharp":
-//                        matrix(new double[][]{{-1.0/9, -1.0/9, -1.0/9}, {-1.0/9, 17.0/9, -1.0/9}, {-1.0/9, -1.0/9, -1.0/9}});
-                        matrix(new double[][]{{0, -0.75, 0}, {-0.75, 4, -0.75}, {0, -0.75, 0}});
+                        double mult = intensity/50.0 + 0.25;
+                        matrix(new double[][]{{0, -mult, 0}, {-mult, 4 * mult + 1, -mult}, {0, -mult, 0}});
                         break;
                     case "test1":
-                        matrix(new double[][]{{-1, 0, 1}, {-1, 1, 1}, {-1, 0, 1}});
+                        mult = intensity/50.0 + 0.25;
+                        matrix(new double[][]{{-mult/2, -mult/2, -mult/2}, {-mult/2, 4 * mult + 1, -mult/2}, {-mult/2, -mult/2, -mult/2}});
                         break;
                     case "test2":
-                        matrix(new double[][]{{1, 1, 1}, {0, 1, 0}, {-1, -1, -1}});
+                        matrix(new double[][]{{225.0/1024, 15.0/512, 225.0/1024}, 
+                                                {15.0/512, 1.0/256, 15.0/512}, 
+                                                {225.0/1024, 15.0/512, 225.0/1024}});
                         break;
                     case "test3":
-                        matrix(new double[][]{{-1, -1, -1}, {0, 1, 0}, {1, 1, 1}});
+                        matrix(new double[][]{{0, -1, 0}, {-1, 5, -1}, {0, -1, 0}});
                         break;
                     case "noise":
                         median();
@@ -407,12 +414,12 @@ public class SparkServer {
             } else {
                 ParallelizeCopy left, right;
                 if ((xhi - xlow) > (yhi - ylow)) {
-                    left = new ParallelizeCopy(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter);
-                    right = new ParallelizeCopy(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter);
+                    left = new ParallelizeCopy(image, copy, xlow, (xhi + xlow) / 2, ylow, yhi, filter, intensity);
+                    right = new ParallelizeCopy(image, copy, (xhi + xlow) / 2, xhi, ylow, yhi, filter, intensity);
                 } else {
                     // left is smaller, right is bigger
-                    left = new ParallelizeCopy(image, copy, xlow, xhi, ylow, (yhi + ylow) / 2, filter);
-                    right = new ParallelizeCopy(image, copy, xlow, xhi, (yhi + ylow) / 2, yhi, filter);
+                    left = new ParallelizeCopy(image, copy, xlow, xhi, ylow, (yhi + ylow) / 2, filter, intensity);
+                    right = new ParallelizeCopy(image, copy, xlow, xhi, (yhi + ylow) / 2, yhi, filter, intensity);
                 }
                 left.fork();
                 right.compute();

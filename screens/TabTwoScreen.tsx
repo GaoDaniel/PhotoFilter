@@ -44,19 +44,20 @@ export default function ImagePickerExample() {
     {label: 'Emojify', value: 'emoji'},
     {label: 'Outline', value: 'outline'},
     {label: 'Sharpen', value: 'sharp'},
-    {label: 'Brighten', value: 'bright'},
-    {label: 'Dim', value: 'dim'},
+    {label: 'Brightness', value: 'bright'},
     {label: 'Test1', value: 'test1'},
     {label: 'Test2', value: 'test2'},
     {label: 'Test3', value: 'test3'},
     {label: 'Remove Noise', value: 'noise'},
-    {label: 'Saturate', value: 'sat'},
-    {label: 'Fade', value: 'fade'},
+    {label: 'Saturation', value: 'sat'},
     {label: 'Red', value: 'red'},
     {label: 'Green', value: 'green'},
     {label: 'Blue', value: 'blue'},
     {label: 'Black and White', value: 'bw'}
   ]);
+
+  const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green', 'blue', 'test1', 'test2', 'test3']);
+  const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Transform state
   const [openT, setOpenT] = useState(false);
@@ -130,7 +131,7 @@ export default function ImagePickerExample() {
     setLoadingFilter(true);
     try{
       let domain = platform !== "web" ? mobileDomain : "localhost:4567";
-      let response = await fetch("http://" + domain + "/filtering?filter=" + valueF, {
+      let response = await fetch("http://" + domain + "/filtering?filter=" + valueF + "&int=" + valueS, {
         method: 'POST',
         body: b64[b64.length - 1],
       });
@@ -286,6 +287,11 @@ export default function ImagePickerExample() {
     setB64(b64);
   },[b64])
 
+  useEffect(() => {
+    console.log("Filter changed");
+    setValueS(0);
+  },[valueF])
+
   return (
     <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
@@ -374,15 +380,19 @@ export default function ImagePickerExample() {
             />
           </View>
 
-          <Slider style={styles.button}
-              minimumValue={0}
-              maximumValue={1}
-              minimumTrackTintColor="#FFFFFF"
+          {sliderFilters.has(valueF) && <Slider style={styles.button}
+              minimumValue={zto100Filters.has(valueF) ? 0 : -100}
+              maximumValue={100}
+              step={1}
+              value={valueS}
+              onValueChange={setValueS}
+              minimumTrackTintColor="#000000"
               maximumTrackTintColor="#000000"
               thumbTintColor='magenta'
               disabled={b64.length === 0 || valueF === '' || loadingFilter}
               onSlidingComplete={setValueS}
-          />
+              tapToSeek={true}
+          />}
 
           <Text> Current Slider Value: {valueS}</Text>
 
