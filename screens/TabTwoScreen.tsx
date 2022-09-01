@@ -72,6 +72,8 @@ export default function ImagePickerExample() {
   // Slider state
   const [valueS, setValueS] = useState(0);
 
+
+
   /**
    * Opens the camera roll on the device, alerting user if access is denied
    */
