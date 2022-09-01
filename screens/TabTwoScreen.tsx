@@ -42,6 +42,7 @@ export default function ImagePickerExample() {
     {label: 'Box Blur', value: 'box'},
     {label: 'Gaussian Blur', value: 'gauss'},
     {label: 'Emojify', value: 'emoji'},
+    {label: 'Asciify', value: 'ascii'},
     {label: 'Outline', value: 'outline'},
     {label: 'Sharpen', value: 'sharp'},
     {label: 'Brightness', value: 'bright'},
