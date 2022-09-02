@@ -311,7 +311,7 @@ export default function ImagePickerExample() {
                 onPress={download}
                 style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 || loadingSave}>
-              <Text style={styles.buttonText}>Download</Text>
+              <Image source={require('../assets/images/download.png')} style={styles.buttonImage}/>
             </TouchableOpacity>
             <TouchableOpacity 
                 onPress={share}
@@ -459,6 +459,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginHorizontal: 2,
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledButton: {
     backgroundColor: 'purple',
@@ -470,10 +472,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     flex: 1,
     opacity: 0.4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     fontSize: 20,
     color: '#fff',
+    flex: 1
+  },
+  buttonImage: {
+    width: 25,
+    height: 25,
+    resizeMode: 'contain',
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1
   },
   image: {
