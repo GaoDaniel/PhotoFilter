@@ -300,10 +300,10 @@ export default function ImagePickerExample() {
         <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
-              <Text style={styles.buttonText}>Pick a photo</Text>
+              <Image source={require('../assets/images/selectImage.png')} style={[styles.buttonImage, {width: 100, height: 50}]}/>
             </TouchableOpacity>
             <TouchableOpacity onPress={openCamera} style={styles.button}>
-              <Text style={styles.buttonText}>Take a photo</Text>
+              <Image source={require('../assets/images/takeImage.png')} style={[styles.buttonImage, {width: 100, height: 50}]}/>
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
@@ -317,7 +317,26 @@ export default function ImagePickerExample() {
                 onPress={share}
                 style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 || loadingSave}>
-              <Text style={styles.buttonText}>Share</Text>
+              <Image source={require('../assets/images/share.png')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={undo}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Image source={require('../assets/images/undo.png')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={redo}
+                style={undone.length === 0 ? styles.disabledButton: styles.button }
+                disabled={undone.length === 0}>
+              <Image source={require('../assets/images/redo.png')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={restore}
+                style={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1] ?
+                    styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1]}>
+              <Image source={require('../assets/images/restore.png')} style={styles.buttonImage}/>
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
@@ -395,31 +414,7 @@ export default function ImagePickerExample() {
               disabled={b64.length === 0 || valueF === '' || loadingFilter}
               onSlidingComplete={setValueS}
               tapToSeek={true}
-          />}
-
-          <Text> Current Slider Value: {valueS}</Text>
-
-          <View style={styles.rowContainer}>
-            <TouchableOpacity
-                onPress={undo}
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
-              <Text style={styles.buttonText}>Undo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                onPress={redo}
-                style={undone.length === 0 ? styles.disabledButton: styles.button }
-                disabled={undone.length === 0}>
-              <Text style={styles.buttonText}>Redo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                onPress={restore}
-                style={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1] ?
-                    styles.disabledButton : styles.button}
-                disabled={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1]}>
-              <Text style={styles.buttonText}>Restore</Text>
-            </TouchableOpacity>
-          </View>
+          />}            
         </ScrollView>
     </View>
     
@@ -481,8 +476,8 @@ const styles = StyleSheet.create({
     flex: 1
   },
   buttonImage: {
-    width: 25,
-    height: 25,
+    width: 20,
+    height: 20,
     resizeMode: 'contain',
     alignItems: 'center',
     justifyContent: 'center',
