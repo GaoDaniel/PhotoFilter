@@ -48,6 +48,7 @@ export default function ImagePickerExample() {
     {label: 'Funny', value: 'funny'},
     {label: 'Emojify', value: 'emoji', parent: 'funny'},
     {label: 'Asciify', value: 'ascii', parent: 'funny'},
+    {label: 'Ansify', value: 'ansi', parent:'funny'},
 
     {label: 'Classic', value: 'classic'},
     {label: 'Box Blur', value: 'box', parent: 'classic'},
@@ -66,16 +67,6 @@ export default function ImagePickerExample() {
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green', 'blue', 'test1', 'test2', 'test3']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
-
-  // Transform state
-  // const [openT, setOpenT] = useState(false);
-  // const [valueT, setValueT] = useState('');
-  // const [itemsT, setItemsT] = useState([
-  //   {label: 'Rotate CCW', value: 'rotateCCW'},
-  //   {label: 'Rotate CW', value: 'rotateCW'},
-  //   {label: 'Flip Horizontal', value: 'hflip'},
-  //   {label: 'Flip Vertical', value: 'vflip'},
-  // ])
 
   // Slider state
   const [valueS, setValueS] = useState(0);
@@ -165,6 +156,7 @@ export default function ImagePickerExample() {
    * Transforms image
    */
   async function applyTransform(valueT : string) {
+    setLoadingFilter(true);
     let result = null;
     const uri = 'data:image/jpeg;base64,' + b64[b64.length - 1];
     if(valueT == 'rotateCCW'){
@@ -184,6 +176,7 @@ export default function ImagePickerExample() {
       setUndone([]);
       setOriginRedo([]);
     }
+    setLoadingFilter(false);
   }
 
   /**
@@ -359,53 +352,29 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             <TouchableOpacity
                 onPress={() => {applyTransform('rotateCCW')}}
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 && loadingFilter}>
               <Image source={require('../assets/images/rotateCCW.jpg')} style={styles.buttonImage}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('rotateCW')}}
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 && loadingFilter}>
               <Image source={require('../assets/images/rotateCW.jpg')} style={styles.buttonImage}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('vflip')}}
-                style={b64.length === 0 ? styles.disabledButton : styles.button}
-                disabled={b64.length === 0}>
+                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 && loadingFilter}>
               <Image source={require('../assets/images/vflip.jpg')} style={styles.buttonImage}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('hflip')}}
-                style={b64.length === 0 ? styles.disabledButton: styles.button }
-                disabled={b64.length === 0}>
+                style={b64.length === 0 && loadingFilter? styles.disabledButton: styles.button }
+                disabled={b64.length === 0 && loadingFilter}>
               <Image source={require('../assets/images/hflip.jpg')} style={styles.buttonImage}/>
             </TouchableOpacity>
           </View>
-          {/*<View style={styles.rowContainer}>*/}
-          {/*  <TouchableOpacity */}
-          {/*      onPress={applyTransform} */}
-          {/*      style={b64.length === 0 || valueT === '' ?*/}
-          {/*          styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}*/}
-          {/*      disabled={b64.length === 0 || valueT === ''}>*/}
-          {/*    <Text style={styles.buttonText}>Apply Transform</Text>*/}
-          {/*  </TouchableOpacity>*/}
-          {/*</View>*/}
-          {/*<View style={[styles.rowContainer, {zIndex: 1}]}>*/}
-          {/*  <DropDownPicker*/}
-          {/*      open={openT}*/}
-          {/*      multiple={false}*/}
-          {/*      value={valueT}*/}
-          {/*      items={itemsT}*/}
-          {/*      setOpen={setOpenT}*/}
-          {/*      setValue={setValueT}*/}
-          {/*      setItems={setItemsT}*/}
-          {/*      listMode="MODAL"*/}
-          {/*      style={styles.button}*/}
-          {/*      textStyle={styles.dropText}*/}
-          {/*      placeholder="Select a Transform"*/}
-          {/*  />*/}
-          {/*</View>*/}
 
           <View style={[styles.rowContainer]}>
             <TouchableOpacity 
@@ -434,7 +403,7 @@ export default function ImagePickerExample() {
                 tapToSeek={true}
           />}
 
-          <View style={[styles.rowContainer, {zIndex: 1}]}>
+          <View style={[styles.rowContainer, {zIndex: 1,}]}>
             <DropDownPicker
                 open={openF}
                 multiple={false}
@@ -449,8 +418,8 @@ export default function ImagePickerExample() {
                 autoScroll={true}
                 style={[styles.button, {flexDirection: 'row'}]}
                 textStyle={styles.dropText}
-                dropDownContainerStyle={{ backgroundColor: "#fff" }}
-
+                dropDownContainerStyle={{ backgroundColor: "#fff", maxHeight: 500}}
+                stickyHeader={true}
                 categorySelectable={false}
                 listItemLabelStyle={{ color: "#000" }}
                 listParentLabelStyle={styles.dropdownParent}

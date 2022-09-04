@@ -17,7 +17,7 @@ public class SparkServer {
     public static final int RGB_MASK = 0xFFFFFF;
     public static final int COLOR = 0xFF;
 
-    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "ascii", "outline", "sharp",
+    public static final Set<String> filters = Set.of("invert", "gray", "box", "gauss", "emoji", "ascii", "ansi", "outline", "sharp",
             "bright", "test1", "test2", "test3", "noise", "sat",
             "red", "green", "blue", "bw");
     private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline",
@@ -34,7 +34,7 @@ public class SparkServer {
      */
     public static void main(String[] args) {
         populate("emojis", emojis);
-        for (BufferedImage emoji: emojis) {
+        for (BufferedImage emoji : emojis) {
             int count = 0;
             for (int i = 0; i < emoji.getWidth(); i++) {
                 for (int j = 0; j < emoji.getHeight(); j++) {
@@ -162,7 +162,10 @@ public class SparkServer {
                         emojify();
                         break;
                     case "ascii":
-                        asciify();
+                        asciify(false);
+                        break;
+                    case "ansi":
+                        asciify(true);
                         break;
                     case "bright":
                         bright(intensity);
@@ -306,15 +309,16 @@ public class SparkServer {
             }
         }
 
-        private void asciify() {
-            for (int x = 2*xlow; x < 2*xhi; x++) {
-                for (int y = 2*ylow; y < 2*yhi; y++) {
+        private void asciify(boolean ansi) {
+            for (int x = 2 * xlow; x < 2 * xhi; x++) {
+                for (int y = 2 * ylow; y < 2 * yhi; y++) {
                     Map<BufferedImage, Integer> distance = new HashMap<>();
                     for (BufferedImage image : asciis) {
                         distance.put(image, 0);
                     }
 
                     // get distances by comparing pixel values for every ascii, add all up
+                    int[] colors = new int[3];
                     for (int i = x * BLOCK_LENGTH / 2; i < (x + 1) * BLOCK_LENGTH / 2 && i < image.getWidth(); i++) {
                         for (int j = y * BLOCK_LENGTH / 2; j < (y + 1) * BLOCK_LENGTH / 2 && j < image.getHeight(); j++) {
                             int argb = image.getRGB(i, j);
@@ -326,6 +330,12 @@ public class SparkServer {
                                 newColor = 0xFFFFFF;
                             }
 
+                            if (ansi) {
+                                colors[0] += red;
+                                colors[1] += green;
+                                colors[2] += blue;
+                            }
+
                             for (BufferedImage image : asciis) {
                                 int color = image.getRGB(i % (BLOCK_LENGTH / 2), j % (BLOCK_LENGTH / 2));
                                 if ((color & RGB_MASK) != newColor) {
@@ -335,25 +345,29 @@ public class SparkServer {
                         }
                     }
                     BufferedImage ascii = null;
-                    int minDist = BLOCK_LENGTH * BLOCK_LENGTH / 4 + 1;
+                    int num = BLOCK_LENGTH * BLOCK_LENGTH / 4;
+                    int minDist = num + 1;
                     for (BufferedImage image : distance.keySet()) {
                         if (distance.get(image) < minDist) {
                             minDist = distance.get(image);
                             ascii = image;
                         }
                     }
-
+                    int ansiColor = (0xFF << 24) | ((colors[0] / num) << 16) | ((colors[1] / num) << 8) | (colors[2] / num);
+//                    System.out.printf("%x\n", ansiColor);
                     assert ascii != null;
                     // convert 16x16 block into ascii
                     for (int i = x * BLOCK_LENGTH / 2; i < (x + 1) * BLOCK_LENGTH / 2 && i < image.getWidth(); i++) {
                         for (int j = y * BLOCK_LENGTH / 2; j < (y + 1) * BLOCK_LENGTH / 2 && j < image.getHeight(); j++) {
                             int newColor = ascii.getRGB(i % (BLOCK_LENGTH / 2), j % (BLOCK_LENGTH / 2));
+                            if (ansi && (newColor & RGB_MASK) == 0x0) {
+                                newColor = ansiColor;
+                            }
                             image.setRGB(i, j, newColor);
                         }
                     }
                 }
             }
-
         }
 
         private void emojify() {
@@ -401,9 +415,9 @@ public class SparkServer {
                         for (int j = y * BLOCK_LENGTH; j < (y + 1) * BLOCK_LENGTH && j < image.getHeight(); j++) {
                             int newColor = emoji.getRGB(i % BLOCK_LENGTH, j % BLOCK_LENGTH);
                             // keeps same color if emoji is transparent
-                            if ((newColor & ALPHA_MASK) == 0){
-                                newColor = ALPHA_MASK | image.getRGB(i, j);
-//                                newColor = 0xFFFFFFFF;
+                            if ((newColor & ALPHA_MASK) == 0) {
+//                                newColor = ALPHA_MASK | image.getRGB(i, j);
+                                newColor = 0xFFFFFFFF;
                             }
                             image.setRGB(i, j, newColor);
                         }
