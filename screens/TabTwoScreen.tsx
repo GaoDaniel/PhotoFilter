@@ -37,38 +37,45 @@ export default function ImagePickerExample() {
   const [openF, setOpen] = useState(false);
   const [valueF, setValue] = useState('');
   const [itemsF, setItems] = useState([
-    {label: 'Invert', value: 'invert'},
-    {label: 'Grayscale', value: 'gray'},
-    {label: 'Box Blur', value: 'box'},
-    {label: 'Gaussian Blur', value: 'gauss'},
-    {label: 'Emojify', value: 'emoji'},
-    {label: 'Asciify', value: 'ascii'},
-    {label: 'Outline', value: 'outline'},
-    {label: 'Sharpen', value: 'sharp'},
-    {label: 'Brightness', value: 'bright'},
-    {label: 'Test1', value: 'test1'},
-    {label: 'Test2', value: 'test2'},
-    {label: 'Test3', value: 'test3'},
-    {label: 'Remove Noise', value: 'noise'},
-    {label: 'Saturation', value: 'sat'},
-    {label: 'Red', value: 'red'},
-    {label: 'Green', value: 'green'},
-    {label: 'Blue', value: 'blue'},
-    {label: 'Black and White', value: 'bw'}
+    {label: 'Colors', value: 'colors'},
+    {label: 'Invert', value: 'invert', parent: 'colors'},
+    {label: 'Grayscale', value: 'gray', parent: 'colors'},
+    {label: 'Black and White', value: 'bw', parent: 'colors'},
+    {label: 'Red', value: 'red', parent: 'colors'},
+    {label: 'Green', value: 'green', parent: 'colors'},
+    {label: 'Blue', value: 'blue', parent: 'colors'},
+
+    {label: 'Funny', value: 'funny'},
+    {label: 'Emojify', value: 'emoji', parent: 'funny'},
+    {label: 'Asciify', value: 'ascii', parent: 'funny'},
+
+    {label: 'Classic', value: 'classic'},
+    {label: 'Box Blur', value: 'box', parent: 'classic'},
+    {label: 'Gaussian Blur', value: 'gauss', parent: 'classic'},
+    {label: 'Sharpen', value: 'sharp', parent: 'classic'},
+    {label: 'Remove Noise', value: 'noise', parent: 'classic'},
+    {label: 'Brightness', value: 'bright', parent: 'classic'},
+    {label: 'Saturation', value: 'sat', parent: 'classic'},
+    {label: 'Outline', value: 'outline', parent: 'classic'},
+
+    {label: 'Test', value: 'test'},
+    {label: 'Test1', value: 'test1', parent: 'test'},
+    {label: 'Test2', value: 'test2', parent: 'test'},
+    {label: 'Test3', value: 'test3', parent: 'test'},
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green', 'blue', 'test1', 'test2', 'test3']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Transform state
-  const [openT, setOpenT] = useState(false);
-  const [valueT, setValueT] = useState('');
-  const [itemsT, setItemsT] = useState([
-    {label: 'Rotate CCW', value: 'rotateCCW'},
-    {label: 'Rotate CW', value: 'rotateCW'},
-    {label: 'Flip Horizontal', value: 'hflip'},
-    {label: 'Flip Vertical', value: 'vflip'},
-  ])
+  // const [openT, setOpenT] = useState(false);
+  // const [valueT, setValueT] = useState('');
+  // const [itemsT, setItemsT] = useState([
+  //   {label: 'Rotate CCW', value: 'rotateCCW'},
+  //   {label: 'Rotate CW', value: 'rotateCW'},
+  //   {label: 'Flip Horizontal', value: 'hflip'},
+  //   {label: 'Flip Vertical', value: 'vflip'},
+  // ])
 
   // Slider state
   const [valueS, setValueS] = useState(0);
@@ -157,7 +164,7 @@ export default function ImagePickerExample() {
   /**
    * Transforms image
    */
-  async function applyTransform() {
+  async function applyTransform(valueT : string) {
     let result = null;
     const uri = 'data:image/jpeg;base64,' + b64[b64.length - 1];
     if(valueT == 'rotateCCW'){
@@ -348,31 +355,57 @@ export default function ImagePickerExample() {
                 <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} 
                 style={[styles.image]} />}
           </View>
-          
+
           <View style={styles.rowContainer}>
-            <TouchableOpacity 
-                onPress={applyTransform} 
-                style={b64.length === 0 || valueT === '' ?
-                    styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
-                disabled={b64.length === 0 || valueT === ''}>
-              <Text style={styles.buttonText}>Apply Transform</Text>
+            <TouchableOpacity
+                onPress={() => {applyTransform('rotateCCW')}}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Image source={require('../assets/images/rotateCCW.jpg')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => {applyTransform('rotateCW')}}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Image source={require('../assets/images/rotateCW.jpg')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => {applyTransform('vflip')}}
+                style={b64.length === 0 ? styles.disabledButton : styles.button}
+                disabled={b64.length === 0}>
+              <Image source={require('../assets/images/vflip.jpg')} style={styles.buttonImage}/>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => {applyTransform('hflip')}}
+                style={b64.length === 0 ? styles.disabledButton: styles.button }
+                disabled={b64.length === 0}>
+              <Image source={require('../assets/images/hflip.jpg')} style={styles.buttonImage}/>
             </TouchableOpacity>
           </View>
-          <View style={[styles.rowContainer, {zIndex: 1}]}>
-            <DropDownPicker
-                open={openT}
-                multiple={false}
-                value={valueT}
-                items={itemsT}
-                setOpen={setOpenT}
-                setValue={setValueT}
-                setItems={setItemsT}
-                listMode="MODAL"
-                style={styles.button}
-                textStyle={styles.dropText}
-                placeholder="Select a Transform"
-            />
-          </View>
+          {/*<View style={styles.rowContainer}>*/}
+          {/*  <TouchableOpacity */}
+          {/*      onPress={applyTransform} */}
+          {/*      style={b64.length === 0 || valueT === '' ?*/}
+          {/*          styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}*/}
+          {/*      disabled={b64.length === 0 || valueT === ''}>*/}
+          {/*    <Text style={styles.buttonText}>Apply Transform</Text>*/}
+          {/*  </TouchableOpacity>*/}
+          {/*</View>*/}
+          {/*<View style={[styles.rowContainer, {zIndex: 1}]}>*/}
+          {/*  <DropDownPicker*/}
+          {/*      open={openT}*/}
+          {/*      multiple={false}*/}
+          {/*      value={valueT}*/}
+          {/*      items={itemsT}*/}
+          {/*      setOpen={setOpenT}*/}
+          {/*      setValue={setValueT}*/}
+          {/*      setItems={setItemsT}*/}
+          {/*      listMode="MODAL"*/}
+          {/*      style={styles.button}*/}
+          {/*      textStyle={styles.dropText}*/}
+          {/*      placeholder="Select a Transform"*/}
+          {/*  />*/}
+          {/*</View>*/}
 
           <View style={[styles.rowContainer]}>
             <TouchableOpacity 
@@ -386,6 +419,21 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             {loadingFilter && <Progress.Bar width={300} indeterminate={loadingFilter}/>}
           </View>
+          {sliderFilters.has(valueF) &&
+              <Slider style={styles.button}
+                minimumValue={zto100Filters.has(valueF) ? 0 : -100}
+                maximumValue={100}
+                step={1}
+                value={valueS}
+                onValueChange={setValueS}
+                minimumTrackTintColor="#000000"
+                maximumTrackTintColor="#000000"
+                thumbTintColor='magenta'
+                disabled={b64.length === 0 || valueF === '' || loadingFilter}
+                onSlidingComplete={setValueS}
+                tapToSeek={true}
+          />}
+
           <View style={[styles.rowContainer, {zIndex: 1}]}>
             <DropDownPicker
                 open={openF}
@@ -395,26 +443,24 @@ export default function ImagePickerExample() {
                 setOpen={setOpen}
                 setValue={setValue}
                 setItems={setItems}
-                listMode="MODAL"
-                style={styles.button}
-                textStyle={styles.dropText}
+
                 placeholder="Select a Filter"
+                listMode="SCROLLVIEW"
+                autoScroll={true}
+                style={[styles.button, {flexDirection: 'row'}]}
+                textStyle={styles.dropText}
+                dropDownContainerStyle={{ backgroundColor: "#fff" }}
+
+                categorySelectable={false}
+                listItemLabelStyle={{ color: "#000" }}
+                listParentLabelStyle={styles.dropdownParent}
+                listChildContainerStyle={styles.dropdownItem}
+                listChildLabelStyle={styles.dropdownText}
+                selectedItemLabelStyle={{ fontWeight: "bold", color: '#fff' }}
+                selectedItemContainerStyle={{ backgroundColor: "darkorchid" }}
+                tickIconStyle={{ width: 20, height: 20}}
             />
           </View>
-
-          {sliderFilters.has(valueF) && <Slider style={styles.button}
-              minimumValue={zto100Filters.has(valueF) ? 0 : -100}
-              maximumValue={100}
-              step={1}
-              value={valueS}
-              onValueChange={setValueS}
-              minimumTrackTintColor="#000000"
-              maximumTrackTintColor="#000000"
-              thumbTintColor='magenta'
-              disabled={b64.length === 0 || valueF === '' || loadingFilter}
-              onSlidingComplete={setValueS}
-              tapToSeek={true}
-          />}            
         </ScrollView>
     </View>
     
@@ -456,6 +502,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dropdownParent: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: 'purple',
+    backgroundColor: '#fff',
+    flex: 1,
+    marginLeft: 20,
+  },
+  dropdownItem: {
+    backgroundColor: 'purple',
+    padding: 10,
+    borderRadius: 10,
+    border: '2px solid #000',
+    marginVertical: 2,
+    marginLeft: 20,
+    flex: 1,
+    // height: 15,
+    width: 300,
+    flexDirection: 'row',
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: '#fff',
+    flex: 1,
+    paddingLeft: -20,
+    backgroundColor: '#ffffff00'
   },
   disabledButton: {
     backgroundColor: 'purple',
@@ -503,4 +576,4 @@ const styles = StyleSheet.create({
     backgroundColor: 'purple',
     zIndex: 3
   },
-});
+})
