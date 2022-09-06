@@ -354,25 +354,25 @@ export default function ImagePickerExample() {
                 onPress={() => {applyTransform('rotateCCW')}}
                 style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 && loadingFilter}>
-              <Image source={require('../assets/images/rotateCCW.jpg')} style={styles.buttonImage}/>
+              <Image source={require('../assets/images/ccwRot.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('rotateCW')}}
                 style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 && loadingFilter}>
-              <Image source={require('../assets/images/rotateCW.jpg')} style={styles.buttonImage}/>
+              <Image source={require('../assets/images/cwRot.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('vflip')}}
                 style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 && loadingFilter}>
-              <Image source={require('../assets/images/vflip.jpg')} style={styles.buttonImage}/>
+              <Image source={require('../assets/images/vflip.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('hflip')}}
                 style={b64.length === 0 && loadingFilter? styles.disabledButton: styles.button }
                 disabled={b64.length === 0 && loadingFilter}>
-              <Image source={require('../assets/images/hflip.jpg')} style={styles.buttonImage}/>
+              <Image source={require('../assets/images/hflip.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
           </View>
 
@@ -388,8 +388,9 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             {loadingFilter && <Progress.Bar width={300} indeterminate={loadingFilter}/>}
           </View>
-          {sliderFilters.has(valueF) &&
-              <Slider style={styles.button}
+          <View style={styles.rowContainer}>
+            {sliderFilters.has(valueF) && 
+              <Slider style={[styles.button, {flex:5}]}
                 minimumValue={zto100Filters.has(valueF) ? 0 : -100}
                 maximumValue={100}
                 step={1}
@@ -401,7 +402,14 @@ export default function ImagePickerExample() {
                 disabled={b64.length === 0 || valueF === '' || loadingFilter}
                 onSlidingComplete={setValueS}
                 tapToSeek={true}
-          />}
+            />}
+            {sliderFilters.has(valueF) && 
+              <View style={[styles.button, {flex: 1}]}>
+                <Text style={styles.buttonText}>{valueS}</Text>
+              </View>
+            }
+          </View>
+          
 
           <View style={[styles.rowContainer, {zIndex: 1,}]}>
             <DropDownPicker
@@ -521,7 +529,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
     flex: 1
   },
