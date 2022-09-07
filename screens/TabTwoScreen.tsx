@@ -6,7 +6,6 @@ import Constants from "expo-constants";
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-// import { triggerBase64Download } from 'react-base64-downloader';
 import * as Progress from 'react-native-progress';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { FlipType } from 'expo-image-manipulator';
@@ -44,6 +43,9 @@ export default function ImagePickerExample() {
     {label: 'Red', value: 'red', parent: 'colors'},
     {label: 'Green', value: 'green', parent: 'colors'},
     {label: 'Blue', value: 'blue', parent: 'colors'},
+    {label: 'Cyan', value: 'cyan', parent: 'colors'},
+    {label: 'Magenta', value: 'magenta', parent: 'colors'},
+    {label: 'Yellow', value: 'yellow', parent: 'colors'},
 
     {label: 'Funny', value: 'funny'},
     {label: 'Emojify', value: 'emoji', parent: 'funny'},
@@ -65,13 +67,12 @@ export default function ImagePickerExample() {
     {label: 'Test3', value: 'test3', parent: 'test'},
   ]);
 
-  const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green', 'blue', 'test1', 'test2', 'test3']);
+  const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state
   const [valueS, setValueS] = useState(0);
-
-
 
   /**
    * Opens the camera roll on the device, alerting user if access is denied
@@ -217,7 +218,7 @@ export default function ImagePickerExample() {
    */
   async function share() {
     if(!(await Sharing.isAvailableAsync())){
-      // TODO: something about ssl certificates and anonymousfiles on firefox
+      // TODO: something about ssl certificates and anonymousfiles on firefox w/ https
       let remoteUri = await uploadToAnonymousFilesAsync('data:image/jpeg;base64,' + b64[b64.length - 1]);
       makeAlert('File shared',`Image shared at ${remoteUri}`);
     } else {
@@ -307,13 +308,13 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
                 onPress={download}
                 style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 || loadingSave}>
               <Image source={require('../assets/images/download.png')} style={styles.buttonImage}/>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
                 onPress={share}
                 style={b64.length === 0 || loadingSave ? styles.disabledButton : styles.button}
                 disabled={b64.length === 0 || loadingSave}>
@@ -345,7 +346,7 @@ export default function ImagePickerExample() {
 
           <View style={styles.imageContainer}>
             {b64[b64.length - 1] !== '' &&
-                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}} 
+                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}}
                 style={[styles.image]} />}
           </View>
 
@@ -377,7 +378,7 @@ export default function ImagePickerExample() {
           </View>
 
           <View style={[styles.rowContainer]}>
-            <TouchableOpacity 
+            <TouchableOpacity
                 onPress={applyFilter}
                 style={b64.length === 0 || valueF === '' || loadingFilter ?
                     styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
@@ -389,7 +390,7 @@ export default function ImagePickerExample() {
             {loadingFilter && <Progress.Bar width={300} indeterminate={loadingFilter}/>}
           </View>
           <View style={styles.rowContainer}>
-            {sliderFilters.has(valueF) && 
+            {sliderFilters.has(valueF) &&
               <Slider style={[styles.button, {flex:5}]}
                 minimumValue={zto100Filters.has(valueF) ? 0 : -100}
                 maximumValue={100}
@@ -403,13 +404,13 @@ export default function ImagePickerExample() {
                 onSlidingComplete={setValueS}
                 tapToSeek={true}
             />}
-            {sliderFilters.has(valueF) && 
+            {sliderFilters.has(valueF) &&
               <View style={[styles.button, {flex: 1}]}>
                 <Text style={styles.buttonText}>{valueS}</Text>
               </View>
             }
           </View>
-          
+
 
           <View style={[styles.rowContainer, {zIndex: 1,}]}>
             <DropDownPicker
@@ -440,7 +441,7 @@ export default function ImagePickerExample() {
           </View>
         </ScrollView>
     </View>
-    
+
   );
 }
 
