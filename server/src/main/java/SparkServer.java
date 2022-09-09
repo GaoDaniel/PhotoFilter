@@ -594,32 +594,31 @@ public class SparkServer {
             if ((xhi - xlow) * (yhi - ylow) <= SEQUENTIAL_CUTOFF) {
                 switch (filter) {
                     case "box":
-                        matrix(new double[][]{{1.0 / 9, 1.0 / 9, 1.0 / 9}, {1.0 / 9, 1.0 / 9, 1.0 / 9}, {1.0 / 9, 1.0 / 9, 1.0 / 9}});
+                        int dimension = (int)(intensity / 10) + 1;
+                        System.out.println("dimension: " + dimension);
+                        matrix(dimension, boxBuilder(dimension));
                         break;
                     case "gauss":
-                        matrix(new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
+                        matrix(3, new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
                         break;
                     case "outline":
-                        // matrix(new double[][]{{0, 1, 0}, {1, -4, 1}, {0, 1, 0}});
-                        // matrix(new double[][]{{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}});
-                        // matrix(new double[][]{{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}});
-                        matrix(new double[][]{{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}});
+                        matrix(3, new double[][]{{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}});
                         break;
                     case "sharp":
                         double mult = intensity / 50.0 + 0.25;
-                        matrix(new double[][]{{0, -mult, 0}, {-mult, 4 * mult + 1, -mult}, {0, -mult, 0}});
+                        matrix(3, new double[][]{{0, -mult, 0}, {-mult, 4 * mult + 1, -mult}, {0, -mult, 0}});
                         break;
                     case "test1":
                         mult = intensity / 50.0 + 0.25;
-                        matrix(new double[][]{{-mult / 2, -mult / 2, -mult / 2}, {-mult / 2, 4 * mult + 1, -mult / 2}, {-mult / 2, -mult / 2, -mult / 2}});
+                        matrix(3, new double[][]{{-mult / 2, -mult / 2, -mult / 2}, {-mult / 2, 4 * mult + 1, -mult / 2}, {-mult / 2, -mult / 2, -mult / 2}});
                         break;
                     case "test2":
-                        matrix(new double[][]{{225.0 / 1024, 15.0 / 512, 225.0 / 1024},
+                        matrix(3, new double[][]{{225.0 / 1024, 15.0 / 512, 225.0 / 1024},
                                 {15.0 / 512, 1.0 / 256, 15.0 / 512},
                                 {225.0 / 1024, 15.0 / 512, 225.0 / 1024}});
                         break;
                     case "test3":
-                        matrix(new double[][]{{0, -1, 0}, {-1, 5, -1}, {0, -1, 0}});
+                        matrix(3, new double[][]{{0, -1, 0}, {-1, 5, -1}, {0, -1, 0}});
                         break;
                     case "noise":
                         median();
@@ -642,19 +641,27 @@ public class SparkServer {
         }
 
         // applies modified matrix multiplication on input image
-        private void matrix(double[][] m) {
+        private void matrix(int dimension, double[][] m) {
             for (int j = ylow; j < yhi; j++) {
                 for (int i = xlow; i < xhi; i++) {
-                    int[][][] mtx = getMatrix(i, j);
-                    double r = Math.min(0.0 + 0xFF, Math.max(0.0, mult(mtx[0], m)));
-                    double g = Math.min(0.0 + 0xFF, Math.max(0.0, mult(mtx[1], m)));
-                    double b = Math.min(0.0 + 0xFF, Math.max(0.0, mult(mtx[2], m)));
+                    int[][][] mtx = getMatrix(dimension, i, j);
+                    double r = Math.min(0.0 + 0xFF, Math.max(0.0, mult(dimension, mtx[0], m)));
+                    double g = Math.min(0.0 + 0xFF, Math.max(0.0, mult(dimension, mtx[1], m)));
+                    double b = Math.min(0.0 + 0xFF, Math.max(0.0, mult(dimension, mtx[2], m)));
 
                     // keep same alpha val, round rgb value
                     int rgb = ((int) (Math.round(r) << 16) + ((int) Math.round(g) << 8) + (int) Math.round(b));
                     copy[j * image.getWidth() + i] = (ALPHA_MASK & image.getRGB(i, j)) | rgb;
                 }
             }
+        }
+
+        private double[][] boxBuilder(int dimension) {
+            double[][] matrix = new double[dimension][dimension];
+            for(double[] row : matrix){
+                Arrays.fill(row, 1.0/(dimension * dimension));
+            }
+            return matrix;
         }
 
         private void median() {
@@ -694,10 +701,10 @@ public class SparkServer {
 
         // helper multiplication method
         // multiplies corresponding indices and adds them
-        private double mult(int[][] a, double[][] b) {
+        private double mult(int dimension, int[][] a, double[][] b) {
             double res = 0;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < dimension; i++) {
+                for (int j = 0; j < dimension; j++) {
                     res += a[i][j] * b[i][j];
                 }
             }
@@ -706,23 +713,25 @@ public class SparkServer {
 
         // helper getter method of neighbors
         // returns three 3x3 matrices of r g b values of pixels around i, j
-        private int[][][] getMatrix(int i, int j) {
-            int[][][] res = new int[3][3][3];
-            for (int x = -1; x <= 1; x++) {
-                for (int y = -1; y <= 1; y++) {
+        private int[][][] getMatrix(int dimension, int i, int j) {
+            int[][][] res = new int[3][dimension][dimension];
+            int low = -1 * dimension / 2;
+            int high = (dimension - 1) / 2;
+            for (int x = low; x <= high; x++) {
+                for (int y = low; y <= high; y++) {
                     int rgb;
-                    if ((i + x == -1 || i + x == image.getWidth()) && (j + y == -1 || j + y == image.getHeight())) {
+                    if ((i + x <= -1 || i + x >= image.getWidth()) && (j + y <= -1 || j + y >= image.getHeight())) {
                         rgb = image.getRGB(i, j) & RGB_MASK;
-                    } else if (i + x == -1 || i + x == image.getWidth()) {
+                    } else if (i + x <= -1 || i + x >= image.getWidth()) {
                         rgb = image.getRGB(i, j + y) & RGB_MASK;
-                    } else if (j + y == -1 || j + y == image.getHeight()) {
+                    } else if (j + y <= -1 || j + y >= image.getHeight()) {
                         rgb = image.getRGB(i + x, j) & RGB_MASK;
                     } else {
                         rgb = image.getRGB(i + x, j + y) & RGB_MASK;
                     }
-                    res[0][x + 1][y + 1] = (rgb >> 16) & COLOR;
-                    res[1][x + 1][y + 1] = (rgb >> 8) & COLOR;
-                    res[2][x + 1][y + 1] = rgb & COLOR;
+                    res[0][x - low][y - low] = (rgb >> 16) & COLOR;
+                    res[1][x - low][y - low] = (rgb >> 8) & COLOR;
+                    res[2][x - low][y - low] = rgb & COLOR;
                 }
             }
             return res;
