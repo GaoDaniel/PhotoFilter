@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.*;
 
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class SparkServer {
     public static final int ALPHA_MASK = 0xFF000000;
@@ -20,7 +22,7 @@ public class SparkServer {
     public static final Set<String> filters =
             Set.of("invert", "gray", "box", "gauss", "emoji", "ascii", "ansi", "outline", "sharp",
             "bright", "test1", "test2", "test3", "noise", "sat",
-            "red", "green", "blue", "cyan", "yellow", "magenta", "bw");
+            "red", "green", "blue", "cyan", "yellow", "magenta", "bw", "dom");
     private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline",
             "test1", "test2", "test3", "noise");
     // intFilters: "box", "gauss", "sharp", "bright", "sat", "red", "green", "blue"
@@ -126,7 +128,33 @@ public class SparkServer {
 
     // does parallelized filter based on the filter type
     private static void filter(BufferedImage inputImage, String filter, int intensity) {
-        if (matrixFilters.contains(filter)) {
+        if (filter.equals("dom")){
+            int[] hues = new int[360];
+            double[] sats = new double[360];
+            double[] brights = new double[360];
+            Lock[] locks = new Lock[360];
+            for (int i = 0; i < 360; i++){
+                locks[i] = new ReentrantLock();
+            }
+            // find dominant hue 0-359, ave S of the dominant, ave B of the dominant
+            fjpool.invoke(new ParallelizeHue(inputImage, hues, sats, brights, locks, 0, inputImage.getWidth(), 0, inputImage.getHeight(), intensity, null));
+
+            int hueCount = hues[0];
+            int hue = 0;
+            for (int i = 1; i < hues.length; i++) {
+                if (hues[i] > hueCount) {
+                    hueCount = hues[i];
+                    hue = i;
+                }
+            }
+            double sat = sats[hue]/hueCount;
+            double bright = brights[hue]/hueCount;
+
+            System.out.printf("%d, %f, %f\n", hue, sat, bright);
+
+            // hue tolerance, if not in range, set to grayscale, or grayscale dominant on inverse
+            fjpool.invoke(new ParallelizeHue(inputImage, null, null, null, null, 0, inputImage.getWidth(), 0, inputImage.getHeight(), intensity, new HSV(hue, sat, bright)));
+        } else if (matrixFilters.contains(filter)) {
             int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
             fjpool.invoke(new ParallelizeCopy(inputImage, copy, 0, inputImage.getWidth(), 0, inputImage.getHeight(), filter, intensity));
             inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy, 0, inputImage.getWidth());
@@ -134,6 +162,152 @@ public class SparkServer {
             fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15) / 16, 0, (inputImage.getHeight() + 15) / 16, filter, intensity));
         }
     }
+
+    private static class HSV{
+        int r, g, b;
+        int h;
+        double s, v;
+
+        private final int max, min;
+
+        public HSV(int rgb){
+            r = COLOR & (rgb >> 16);
+            g = COLOR & (rgb >> 8);
+            b = COLOR & rgb;
+
+            max = Math.max(r, Math.max(g, b));
+            min = Math.min(r, Math.min(g, b));
+
+            v = max/255.0;
+            s = max > 0 ? 1 - min/(0.0 + max) : 0;
+            h = (int) Math.round(180.0/Math.PI * Math.acos((r - g/2.0 - b/2.0)/(Math.sqrt(r*r + g*g + b*b - r*g - r*b - g*b))));
+            if (b > g){
+                h = 360 - h;
+            }
+            h %= 360;
+        }
+
+        public HSV(int h, double s, double v) {
+            this.h = h;
+            this.s = s;
+            this.v = v;
+
+            max = (int) (255 * v);
+            min = (int) (max * (1 - s));
+
+            int z = (int) ((max - min) * (1.0 - Math.abs((h / 60.0) % 2 - 1)));
+            if (h < 60) {
+                r = max;
+                g = z + min;
+                b = min;
+            } else if (h < 120) {
+                r = z + min;
+                g = max;
+                b = min;
+            } else if (h < 180) {
+                r = min;
+                g = max;
+                b = z + min;
+            } else if (h < 240) {
+                r = min;
+                g = z + min;
+                b = max;
+            } else if (h < 300) {
+                r = z + min;
+                g = min;
+                b = max;
+            } else {
+                r = max;
+                g = min;
+                b = z + min;
+            }
+        }
+    }
+
+    private static class ParallelizeHue extends RecursiveAction {
+        final int SEQUENTIAL_CUTOFF = 1024;
+        int xlow, xhi, ylow, yhi, intensity;
+        BufferedImage image;
+
+        int[] hues;
+        double[] sats, brights;
+        Lock[] locks;
+        HSV dom;
+
+        public ParallelizeHue(BufferedImage image, int[] hues, double[] sats, double[] brights, Lock[] locks, int xlow, int xhi, int ylow, int yhi, int intensity, HSV dom) {
+            this.image = image;
+            this.xlow = xlow;
+            this.xhi = xhi;
+            this.ylow = ylow;
+            this.yhi = yhi;
+            this.intensity = intensity;
+            this.hues = hues;
+            this.sats = sats;
+            this.brights = brights;
+            this.locks = locks;
+            this.dom = dom;
+        }
+
+        @Override
+        public void compute() {
+            if ((xhi - xlow) * (yhi - ylow) <= SEQUENTIAL_CUTOFF) {
+                if (dom == null){
+                    dominantHue();
+                } else {
+                    processHue();
+                }
+            } else {
+                ParallelizeHue left, right;
+                if ((xhi - xlow) > (yhi - ylow)) {
+                    left = new ParallelizeHue(image, hues, sats, brights, locks, xlow, (xhi + xlow) / 2, ylow, yhi, intensity, dom);
+                    right = new ParallelizeHue(image, hues, sats, brights, locks, (xhi + xlow) / 2, xhi, ylow, yhi, intensity, dom);
+                } else {
+                    // left is smaller, right is bigger
+                    left = new ParallelizeHue(image, hues, sats, brights, locks, xlow, xhi, ylow, (yhi + ylow) / 2, intensity, dom);
+                    right = new ParallelizeHue(image, hues, sats, brights, locks, xlow, xhi, (yhi + ylow) / 2, yhi, intensity, dom);
+                }
+                left.fork();
+                right.compute();
+                left.join();
+            }
+
+        }
+
+        private void dominantHue(){
+            for (int i = xlow; i < xhi; i++) {
+                for (int j = ylow; j < yhi; j++) {
+                    HSV hsv = new HSV(RGB_MASK & image.getRGB(i, j));
+
+                    locks[hsv.h].lock();
+                    hues[hsv.h]++;
+                    sats[hsv.h] += hsv.s;
+                    brights[hsv.h] += hsv.v;
+                    locks[hsv.h].unlock();
+                }
+            }
+        }
+
+        private void processHue(){
+            boolean remove = intensity < 0;
+            int tolerance = (360 - (int) (intensity * 3.59)) % 360;
+            int lower = dom.h - tolerance;
+            int upper = dom.h + tolerance;
+            for (int i = xlow; i < xhi; i++) {
+                for (int j = ylow; j < yhi; j++) {
+                    int argb = image.getRGB(i, j);
+                    HSV hsv = new HSV(RGB_MASK & argb);
+                    if ((remove && lower <= hsv.h && hsv.h < upper) || (!remove && (lower > hsv.h || hsv.h >= upper))){
+                        int red = COLOR & (argb >> 16);
+                        int green = COLOR & (argb >> 8);
+                        int blue = COLOR & argb;
+                        int gray = (red + green + blue) / 3;
+                        image.setRGB(i, j, ((argb & ALPHA_MASK) | (gray << 16) | (gray << 8) | gray));
+                    }
+                }
+            }
+        }
+    }
+
 
     // xlow, xhi, ylow, yhi are in terms of 16x16 blocks
     private static class Parallelize extends RecursiveAction {

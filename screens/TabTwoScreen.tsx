@@ -60,6 +60,7 @@ export default function ImagePickerExample() {
     {label: 'Brightness', value: 'bright', parent: 'classic'},
     {label: 'Saturation', value: 'sat', parent: 'classic'},
     {label: 'Outline', value: 'outline', parent: 'classic'},
+    {label: 'Dominant Hue', value: 'dom', parent: 'classic'},
 
     {label: 'Test', value: 'test'},
     {label: 'Test1', value: 'test1', parent: 'test'},
@@ -68,7 +69,7 @@ export default function ImagePickerExample() {
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
-      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3']);
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state
