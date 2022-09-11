@@ -151,7 +151,6 @@ export default function ImagePickerExample() {
       makeAlert("Server Error", "There was an error contacting the server", )
       console.log(e);
     }
-    setLoadingFilter(false);
   }
 
   /**
@@ -178,7 +177,6 @@ export default function ImagePickerExample() {
       setUndone([]);
       setOriginRedo([]);
     }
-    setLoadingFilter(false);
   }
 
   /**
@@ -290,6 +288,7 @@ export default function ImagePickerExample() {
   useEffect(() => {
     console.log("Image changed");
     setB64(b64);
+    setLoadingFilter(false);
   },[b64])
 
   useEffect(() => {
