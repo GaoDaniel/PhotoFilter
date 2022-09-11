@@ -595,11 +595,11 @@ public class SparkServer {
                 switch (filter) {
                     case "box":
                         int dimension = (int)(intensity / 10) + 1;
-                        System.out.println("dimension: " + dimension);
                         matrix(dimension, boxBuilder(dimension));
                         break;
                     case "gauss":
-                        matrix(3, new double[][]{{0.0625, 0.125, 0.0625}, {0.125, 0.25, 0.125}, {0.0625, 0.125, 0.0625}});
+                        dimension = (int)(intensity / 10) + 1;
+                        matrix(dimension, gaussBuilder(dimension));
                         break;
                     case "outline":
                         matrix(3, new double[][]{{-1, -1, -1}, {-1, 8, -1}, {-1, -1, -1}});
@@ -613,12 +613,11 @@ public class SparkServer {
                         matrix(3, new double[][]{{-mult / 2, -mult / 2, -mult / 2}, {-mult / 2, 4 * mult + 1, -mult / 2}, {-mult / 2, -mult / 2, -mult / 2}});
                         break;
                     case "test2":
-                        matrix(3, new double[][]{{225.0 / 1024, 15.0 / 512, 225.0 / 1024},
-                                {15.0 / 512, 1.0 / 256, 15.0 / 512},
-                                {225.0 / 1024, 15.0 / 512, 225.0 / 1024}});
+                        dimension = (int)(intensity / 10) + 1;
+                        matrix(dimension, gaussBuilder(dimension));
                         break;
                     case "test3":
-                        matrix(3, new double[][]{{0, -1, 0}, {-1, 5, -1}, {0, -1, 0}});
+                        matrix(3, new double[][]{{1/3.0, 0, 0}, {0, 1/3.0, 0}, {0, 0, 1/3.0}});
                         break;
                     case "noise":
                         median();
@@ -662,6 +661,22 @@ public class SparkServer {
                 Arrays.fill(row, 1.0/(dimension * dimension));
             }
             return matrix;
+        }
+
+        private double[][] gaussBuilder(int dimension) {
+            int[] temp = new int[dimension];
+            temp[0] = 1;
+            for(int i = 1; i < dimension; i++){
+                temp[i] = (temp[i - 1] * (dimension - i)) / i;
+            }
+            double[][] res = new double[dimension][dimension];
+            double mult = Math.pow(2, 2 * dimension - 2);
+            for(int i = 0; i < dimension; i++){
+                for(int j = 0; j < dimension; j++){
+                    res[i][j] = temp[i] * temp[j] / mult;
+                }
+            }
+            return res;
         }
 
         private void median() {
