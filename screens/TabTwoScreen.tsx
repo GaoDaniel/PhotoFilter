@@ -32,7 +32,7 @@ export default function ImagePickerExample() {
         : `api.example.com`;
   }
 
-  // Filter state
+  // filter state
   const [openF, setOpen] = useState(false);
   const [valueF, setValue] = useState('');
   const [itemsF, setItems] = useState([
@@ -60,16 +60,19 @@ export default function ImagePickerExample() {
     {label: 'Brightness', value: 'bright', parent: 'classic'},
     {label: 'Saturation', value: 'sat', parent: 'classic'},
     {label: 'Outline', value: 'outline', parent: 'classic'},
+      // was going to make this use outline to thicken/thin the outline of objects in an image
+    // {label: 'Outliner', value: 'outliner', parent: 'classic'},
     {label: 'Dominant Hue', value: 'dom', parent: 'classic'},
 
     {label: 'Test', value: 'test'},
-    {label: 'Test1', value: 'test1', parent: 'test'},
-    {label: 'Test2', value: 'test2', parent: 'test'},
-    {label: 'Test3', value: 'test3', parent: 'test'},
+      // will need to add Test Filter classes on SparkServer side
+    // {label: 'Test1', value: 'test1', parent: 'test'},
+    // {label: 'Test2', value: 'test2', parent: 'test'},
+    // {label: 'Test3', value: 'test3', parent: 'test'},
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
-      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom']);
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state

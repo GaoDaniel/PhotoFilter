@@ -1,13 +1,13 @@
 task runSpark(type: JavaExec) {
     group = "homework"
-    main = "SparkServer"
+    main = "SparkServer.SparkServer"
     standardInput = System.in
     classpath = sourceSets.main.runtimeClasspath
 }
 
 task runEmoji(type: JavaExec) {
     group = "homework"
-    main = "GetEmojiColor"
+    main = "utils.GetEmojiColor"
     standardInput = System.in
     classpath = sourceSets.main.runtimeClasspath
 }

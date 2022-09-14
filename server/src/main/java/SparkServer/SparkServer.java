@@ -1,3 +1,7 @@
+package SparkServer;
+
+import filters.Filter;
+import filters.FilterFactory;
 import spark.Spark;
 import utils.CORSFilter;
 import com.google.gson.Gson;
@@ -7,26 +11,14 @@ import java.awt.image.*;
 import java.io.*;
 import java.util.*;
 
-import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class SparkServer {
-    public static final int ALPHA_MASK = 0xFF000000;
-    public static final int RGB_MASK = 0xFFFFFF;
-    public static final int COLOR = 0xFF;
 
-    public static final Set<String> filters =
-            Set.of("invert", "gray", "box", "gauss", "emoji", "ascii", "ansi", "outline", "sharp",
-            "bright", "test1", "test2", "test3", "noise", "sat",
-            "red", "green", "blue", "cyan", "yellow", "magenta", "bw", "dom");
-    private static final Set<String> matrixFilters = Set.of("gauss", "box", "sharp", "outline",
-            "test1", "test2", "test3", "noise");
-    // intFilters: "box", "gauss", "sharp", "bright", "sat", "red", "green", "blue"
-    public static final Set<BufferedImage> emojis = new HashSet<>();
     public static final Set<BufferedImage> asciis = new HashSet<>();
-    public static final Map<BufferedImage, Integer> numOpaque = new HashMap<>();
-    private static final ForkJoinPool fjpool = new ForkJoinPool();
+    public static final Map<BufferedImage, Integer> emojis = new HashMap<>();
+
+    private static final FilterFactory factory = new FilterFactory();
+    private static final int ALPHA_MASK = 0xFF000000;
 
     /*
      * Server
@@ -54,7 +46,8 @@ public class SparkServer {
                 Spark.halt(400, "missing one of base64 or filter");
             }
             filter = filter.toLowerCase();
-            if (!filters.contains(filter)) {
+            Filter f = factory.createFilter(filter);
+            if (f == null) {
                 Spark.halt(401, "filter does not exist");
             }
             base64 = base64.replace(' ', '+');
@@ -77,7 +70,7 @@ public class SparkServer {
             }
 
             // filter
-            filter(inputImage, filter, intensity);
+            f.applyFilter(inputImage, intensity);
 
             // convert back to base64 uri
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -92,8 +85,9 @@ public class SparkServer {
     }
 
     private static void setup(){
-        populate("emojis", emojis);
-        for (BufferedImage emoji : emojis) {
+        Set<BufferedImage> tempE = new HashSet<>();
+        populate("emojis", tempE);
+        for (BufferedImage emoji : tempE) {
             int count = 0;
             for (int i = 0; i < emoji.getWidth(); i++) {
                 for (int j = 0; j < emoji.getHeight(); j++) {
@@ -103,7 +97,7 @@ public class SparkServer {
                     }
                 }
             }
-            numOpaque.put(emoji, count);
+            emojis.put(emoji, count);
         }
         // System.out.println(numOpaque.values());
         populate("ascii", asciis);
@@ -120,43 +114,6 @@ public class SparkServer {
             }
         } catch (IOException e) {
             System.out.println("Input error: " + e);
-        }
-    }
-
-    // does parallelized filter based on the filter type
-    private static void filter(BufferedImage inputImage, String filter, int intensity) {
-        if (filter.equals("dom")){
-            int[] hues = new int[360];
-            double[] sats = new double[360];
-            double[] brights = new double[360];
-            Lock[] locks = new Lock[360];
-            for (int i = 0; i < 360; i++){
-                locks[i] = new ReentrantLock();
-            }
-            // find dominant hue 0-359, ave S of the dominant, ave B of the dominant
-            fjpool.invoke(new ParallelizeHue(inputImage, hues, sats, brights, locks, 0, inputImage.getWidth(), 0, inputImage.getHeight(), intensity, null));
-
-            int hueCount = hues[0];
-            int hue = 0;
-            for (int i = 1; i < hues.length; i++) {
-                if (hues[i] > hueCount) {
-                    hueCount = hues[i];
-                    hue = i;
-                }
-            }
-            double sat = sats[hue]/hueCount;
-            double bright = brights[hue]/hueCount;
-
-            System.out.printf("%d, %f, %f\n", hue, sat, bright);
-
-            // hue tolerance, if not in range, set to grayscale, or grayscale dominant on inverse
-            fjpool.invoke(new ParallelizeHue(inputImage, null, null, null, null, 0, inputImage.getWidth(), 0, inputImage.getHeight(), intensity, new HSV(hue, sat, bright)));
-        } else if (matrixFilters.contains(filter)) {
-            int[] copy = new int[inputImage.getWidth() * inputImage.getHeight()];
-            fjpool.invoke(new ParallelizeCopy(inputImage, copy, 0, inputImage.getWidth(), 0, inputImage.getHeight(), filter, intensity));
-            inputImage.setRGB(0, 0, inputImage.getWidth(), inputImage.getHeight(), copy, 0, inputImage.getWidth());
-        } else {
-            fjpool.invoke(new Parallelize(inputImage, 0, (inputImage.getWidth() + 15) / 16, 0, (inputImage.getHeight() + 15) / 16, filter, intensity));
         }
     }
 }
