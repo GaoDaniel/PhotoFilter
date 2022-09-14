@@ -1,16 +1,8 @@
 package filters.copy;
 
-import java.awt.image.BufferedImage;
-
 public class GaussBlur extends CopyFilter {
-    public GaussBlur(){
-        super(null);
-    }
-
-    @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public GaussBlur(int intensity){
         this.matrix = gaussBuilder(intensity / 10 + 1);
-        super.applyFilter(bi, intensity);
     }
 
     // helper base matrix constructor

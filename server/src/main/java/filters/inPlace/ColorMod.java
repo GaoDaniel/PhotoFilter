@@ -14,16 +14,11 @@ public class ColorMod extends InPlaceFilter{
     /**
      * private multiplier based on intensity
      */
-    private double mult;
+    private final double mult;
 
-    public ColorMod(int color){
+    public ColorMod(int color, int intensity){
         this.color = color;
-    }
-
-    @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
         this.mult = Math.pow(2, intensity / 50.0);
-        super.applyFilter(bi, intensity);
     }
 
     public void filter(int xlow, int xhi, int ylow, int yhi) {

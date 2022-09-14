@@ -6,12 +6,8 @@ public class Saturate extends InPlaceFilter{
 
     private double mult;
 
-    public Saturate(){}
-
-    @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public Saturate(int intensity){
         this.mult = Math.pow(2, intensity / 100.0);
-        super.applyFilter(bi, intensity);
     }
 
     public void filter(int xlow, int xhi, int ylow, int yhi) {

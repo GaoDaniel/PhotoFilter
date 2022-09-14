@@ -14,14 +14,14 @@ public class FilterFactory {
      * @param name name of the filter to generate
      * @return Filter object based on name, and null if filter does not exist
      */
-    public Filter createFilter(String name){
+    public Filter createFilter(String name, int intensity){
         switch(name) {
             case "invert":
                 return new Invert();
             case "gray":
                 return new Grayscale();
             case "bw":
-                return new BlackWhite();
+                return new BlackWhite(intensity);
             case "emoji":
                 return new Emojify(SparkServer.emojis);
             case "ascii":
@@ -29,36 +29,36 @@ public class FilterFactory {
             case "ansi":
                 return new Asciify(SparkServer.asciis, true);
             case "bright":
-                return new ColorMod(0xFFFFFF);
+                return new ColorMod(0xFFFFFF, intensity);
             case "sat":
-                return new Saturate();
+                return new Saturate(intensity);
 
             case "red":
-                return new ColorMod(0xFF0000);
+                return new ColorMod(0xFF0000, intensity);
             case "green":
-                return new ColorMod(0x00FF00);
+                return new ColorMod(0x00FF00, intensity);
             case "blue":
-                return new ColorMod(0x0000FF);
+                return new ColorMod(0x0000FF, intensity);
             case "cyan":
-                return new ColorMod(0x00FFFF);
+                return new ColorMod(0x00FFFF, intensity);
             case "magenta":
-                return new ColorMod(0xFF00FF);
+                return new ColorMod(0xFF00FF, intensity);
             case "yellow":
-                return new ColorMod(0xFFFF00);
+                return new ColorMod(0xFFFF00, intensity);
 
             case "box":
-                return new BoxBlur();
+                return new BoxBlur(intensity);
             case "gauss":
-                return new GaussBlur();
+                return new GaussBlur(intensity);
             case "outline":
                 return new Outline();
             case "sharp":
-                return new Sharp();
+                return new Sharp(intensity);
             case "noise":
                 return new Noise();
 
             case "dom":
-                return new DominantHue();
+                return new DominantHue(intensity);
 
 //            case "test1":
 //                return new Test1();

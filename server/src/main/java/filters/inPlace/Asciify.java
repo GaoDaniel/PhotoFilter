@@ -31,11 +31,12 @@ public class Asciify extends Filter {
     }
 
     @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public void applyFilter(BufferedImage bi) {
         this.bi = bi;
-        fjpool.invoke(new Parallelize(0, (bi.getWidth() + 7) / 8, 0, (bi.getHeight() + 7) / 8, this, intensity, 16));
+        fjpool.invoke(new Parallelize(0, (bi.getWidth() + 7) / 8, 0, (bi.getHeight() + 7) / 8, this, 16));
     }
 
+    @Override
     public void filter(int xlow, int xhi, int ylow, int yhi) {
         for (int x = xlow; x < xhi; x++) {
             for (int y = ylow; y < yhi; y++) {

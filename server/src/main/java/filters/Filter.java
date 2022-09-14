@@ -26,11 +26,8 @@ public abstract class Filter {
      * invokes filtering of image
      *
      * @param bi the image to apply the filter on
-     * @param intensity the intensity of the filter
      */
-    // TODO : do something about intensity when filters dont use it?
-    // maybe move intensity to constructor, not in applyFilter
-    public abstract void applyFilter(BufferedImage bi, int intensity);
+    public abstract void applyFilter(BufferedImage bi);
 
     /**
      * Applies filter in range

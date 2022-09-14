@@ -1,17 +1,10 @@
 package filters.copy;
 
-import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 public class BoxBlur extends CopyFilter {
-    public BoxBlur(){
-        super(null);
-    }
-
-    @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public BoxBlur(int intensity){
         this.matrix = boxBuilder(intensity / 10 + 1);
-        super.applyFilter(bi, intensity);
     }
 
     // helper base matrix constructor

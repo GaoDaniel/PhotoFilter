@@ -24,9 +24,9 @@ public class Emojify extends Filter {
     }
 
     @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public void applyFilter(BufferedImage bi) {
         this.bi = bi;
-        fjpool.invoke(new Parallelize(0, (bi.getWidth() + 15) / 16, 0, (bi.getHeight() + 15) / 16, this, intensity, 4));
+        fjpool.invoke(new Parallelize(0, (bi.getWidth() + 15) / 16, 0, (bi.getHeight() + 15) / 16, this, 4));
     }
 
     public void filter(int xlow, int xhi, int ylow, int yhi) {

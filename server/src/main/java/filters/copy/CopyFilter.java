@@ -17,15 +17,11 @@ public abstract class CopyFilter extends Filter {
      */
     int[] copy;
 
-    public CopyFilter(double[][] matrix){
-        this.matrix = matrix;
-    }
-
     @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public void applyFilter(BufferedImage bi) {
         this.bi = bi;
         this.copy = new int[bi.getHeight() * bi.getWidth()];
-        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this, intensity));
+        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this));
         bi.setRGB(0, 0, bi.getWidth(), bi.getHeight(), copy, 0, bi.getWidth());
     }
 

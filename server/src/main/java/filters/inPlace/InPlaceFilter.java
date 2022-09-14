@@ -8,9 +8,9 @@ import java.awt.image.BufferedImage;
 public abstract class InPlaceFilter extends Filter {
 
     @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public void applyFilter(BufferedImage bi) {
         this.bi = bi;
-        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this, intensity));
+        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this));
     }
 
 }

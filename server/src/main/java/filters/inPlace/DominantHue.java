@@ -37,7 +37,7 @@ public class DominantHue extends Filter {
      */
     int tolerance;
 
-    public DominantHue(){
+    public DominantHue(int intensity){
         hues = new int[360];
         sats = new double[360];
         brights = new double[360];
@@ -46,13 +46,17 @@ public class DominantHue extends Filter {
             locks[i] = new ReentrantLock();
         }
         dom = null;
+
+        remove = intensity < 0;
+        tolerance = (179 - (int) (intensity * 1.80)) % 180;
+        if(intensity > 0) tolerance++;
     }
 
     @Override
-    public void applyFilter(BufferedImage bi, int intensity) {
+    public void applyFilter(BufferedImage bi) {
         super.bi = bi;
         // find dominant hue 0-359, ave S of the dominant, ave B of the dominant
-        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this, intensity));
+        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this));
 
         int hueCount = hues[0];
         int hue = 0;
@@ -66,12 +70,9 @@ public class DominantHue extends Filter {
         double bright = brights[hue]/hueCount;
         
         dom = new HSV(hue, sat, bright);
-        remove = intensity < 0;
-        tolerance = (179 - (int) (intensity * 1.80)) % 180;
-        if(intensity > 0) tolerance++;
         
         // hue tolerance, if not in range, set to grayscale, or grayscale dominant on inverse
-        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this, intensity));
+        fjpool.invoke(new Parallelize(0, bi.getWidth(), 0, bi.getHeight(), this));
     }
 
     @Override

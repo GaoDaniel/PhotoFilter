@@ -72,7 +72,7 @@ export default function ImagePickerExample() {
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
-      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner']);
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner', 'bw']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state
@@ -344,7 +344,7 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
-            {loadingSave && <Progress.Bar width={300} indeterminate={loadingSave}/>}
+            {loadingSave && <Progress.Bar width={350} indeterminate={loadingSave}/>}
           </View>
 
           <View style={styles.imageContainer}>
@@ -356,26 +356,26 @@ export default function ImagePickerExample() {
           <View style={styles.rowContainer}>
             <TouchableOpacity
                 onPress={() => {applyTransform('rotateCCW')}}
-                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
-                disabled={b64.length === 0 && loadingFilter}>
+                style={b64.length === 0 || loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || loadingFilter}>
               <Image source={require('../assets/images/ccwRot.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('rotateCW')}}
-                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
-                disabled={b64.length === 0 && loadingFilter}>
+                style={b64.length === 0 || loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || loadingFilter}>
               <Image source={require('../assets/images/cwRot.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('vflip')}}
-                style={b64.length === 0 && loadingFilter? styles.disabledButton : styles.button}
-                disabled={b64.length === 0 && loadingFilter}>
+                style={b64.length === 0 || loadingFilter? styles.disabledButton : styles.button}
+                disabled={b64.length === 0 || loadingFilter}>
               <Image source={require('../assets/images/vflip.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => {applyTransform('hflip')}}
-                style={b64.length === 0 && loadingFilter? styles.disabledButton: styles.button }
-                disabled={b64.length === 0 && loadingFilter}>
+                style={b64.length === 0 || loadingFilter? styles.disabledButton: styles.button }
+                disabled={b64.length === 0 || loadingFilter}>
               <Image source={require('../assets/images/hflip.png')} style={[styles.buttonImage, {width: 25, height: 25}]}/>
             </TouchableOpacity>
           </View>
@@ -390,7 +390,7 @@ export default function ImagePickerExample() {
             </TouchableOpacity>
           </View>
           <View style={styles.rowContainer}>
-            {loadingFilter && <Progress.Bar width={300} indeterminate={loadingFilter}/>}
+            {loadingFilter && <Progress.Bar width={350} indeterminate={loadingFilter}/>}
           </View>
           <View style={styles.rowContainer}>
             {sliderFilters.has(valueF) &&
@@ -431,7 +431,7 @@ export default function ImagePickerExample() {
                 style={[styles.button, {flexDirection: 'row'}]}
                 textStyle={styles.dropText}
                 dropDownContainerStyle={{ backgroundColor: "#fff", maxHeight: 500}}
-                stickyHeader={true}
+                stickyHeader={false}
                 categorySelectable={false}
                 listItemLabelStyle={{ color: "#000" }}
                 listParentLabelStyle={styles.dropdownParent}
@@ -459,7 +459,8 @@ const styles = StyleSheet.create({
   },
   rowContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'stretch',
   },
   logo: {
     width: 305,

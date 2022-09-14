@@ -5,9 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class Noise extends CopyFilter {
-    public Noise(){
-        super(null);
-    }
 
     @Override
     protected void filter(int xlow, int xhi, int ylow, int yhi) {
