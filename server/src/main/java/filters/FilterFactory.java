@@ -14,7 +14,7 @@ public class FilterFactory {
      * @param name name of the filter to generate
      * @return Filter object based on name, and null if filter does not exist
      */
-    public Filter createFilter(String name, int intensity){
+    public Filter createFilter(String name, int intensity, int color){
         switch(name) {
             case "invert":
                 return new Invert();
@@ -45,6 +45,8 @@ public class FilterFactory {
                 return new ColorMod(0xFF00FF, intensity);
             case "yellow":
                 return new ColorMod(0xFFFF00, intensity);
+            case "c":
+                return new ColorMod(color, intensity);
 
             case "box":
                 return new BoxBlur(intensity);

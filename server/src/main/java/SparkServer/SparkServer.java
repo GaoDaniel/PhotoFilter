@@ -22,7 +22,7 @@ public class SparkServer {
 
     /*
      * Server
-     * Format of URLs: http://localhost:4567/filtering?filter=invert&int=intensity
+     * Format of URLs: http://localhost:4567/filtering?filter=filter&int=intensity&c=wColor
      */
     public static void main(String[] args) {
         // population of funny filter data
@@ -37,29 +37,36 @@ public class SparkServer {
             String base64 = request.body();
             String filter = request.queryParams("filter");
             int intensity = 0;
+            int color = 0xFF0000;
             try {
                 intensity = Integer.parseInt(request.queryParams("int"));
             } catch (NumberFormatException e) {
                 Spark.halt(501, "bad int format");
             }
-            if (base64 == null || filter == null) Spark.halt(501, "missing one of base64 or filter");
+            try {
+                color = Integer.valueOf(request.queryParams("c"), 16);
+            } catch (Exception e) {
+                Spark.halt(501, "bad color format");
+            }
 
+            if (base64 == null || filter == null) Spark.halt(502, "missing one of base64 or filter");
             // create filter
-            Filter f = factory.createFilter(filter.toLowerCase(), intensity);
-            if (f == null) Spark.halt(501, "filter does not exist");
+
+            Filter f = factory.createFilter(filter.toLowerCase(), intensity, color);
+            if (f == null) Spark.halt(503, "filter does not exist");
 
             // get bytes from base64
             byte[] imageData = new byte[0];
             try {
                 imageData = Base64.getDecoder().decode(base64.replace(' ', '+'));
             } catch (IllegalArgumentException e) {
-                Spark.halt(501, "invalid base64 scheme");
+                Spark.halt(504, "invalid base64 scheme");
             }
-            if (imageData.length == 0) Spark.halt(501, "invalid base64 scheme");
+            if (imageData.length == 0) Spark.halt(505, "invalid base64 scheme");
 
             // get BufferedImage
             BufferedImage inputImage = ImageIO.read(new ByteArrayInputStream(imageData));
-            if (inputImage == null) Spark.halt(501, "base64 could not be read");
+            if (inputImage == null) Spark.halt(506, "base64 could not be read");
 
             // filter
             f.applyFilter(inputImage);

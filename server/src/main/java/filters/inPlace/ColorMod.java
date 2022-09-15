@@ -2,8 +2,6 @@ package filters.inPlace;
 
 import filters.Filter;
 
-import java.awt.image.BufferedImage;
-
 public class ColorMod extends InPlaceFilter{
 
     /**

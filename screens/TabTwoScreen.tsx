@@ -11,6 +11,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { FlipType } from 'expo-image-manipulator';
 import uploadToAnonymousFilesAsync from 'anonymous-files';
 import Slider from '@react-native-community/slider';
+import ColorPicker from 'react-native-wheel-color-picker';
 
 const { manifest } = Constants;
 
@@ -46,6 +47,7 @@ export default function ImagePickerExample() {
     {label: 'Cyan', value: 'cyan', parent: 'colors'},
     {label: 'Magenta', value: 'magenta', parent: 'colors'},
     {label: 'Yellow', value: 'yellow', parent: 'colors'},
+    {label: 'Color Mod', value: 'c', parent: 'colors'},
 
     {label: 'Funny', value: 'funny'},
     {label: 'Emojify', value: 'emoji', parent: 'funny'},
@@ -72,11 +74,14 @@ export default function ImagePickerExample() {
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
-      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner', 'bw']);
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner', 'bw', 'c']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state
   const [valueS, setValueS] = useState(0);
+
+  // Wheel state
+  const [wColor, setColor] = useState('#fff');
 
   /**
    * Opens the camera roll on the device, alerting user if access is denied
@@ -137,7 +142,7 @@ export default function ImagePickerExample() {
     setLoadingFilter(true);
     try{
       let domain = platform !== "web" ? mobileDomain : "localhost:4567";
-      let response = await fetch("http://" + domain + "/filtering?filter=" + valueF + "&int=" + valueS, {
+      let response = await fetch("http://" + domain + "/filtering?filter=" + valueF + "&int=" + valueS + "&c=" + wColor.substring(1), {
         method: 'POST',
         body: b64[b64.length - 1],
       });
@@ -388,6 +393,20 @@ export default function ImagePickerExample() {
                 disabled={b64.length === 0 || valueF === '' || loadingFilter}>
               <Text style={styles.buttonText}>Apply Filter</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.rowContainer}>
+            {valueF == 'c' && 
+              <ColorPicker
+                sliderSize={30}
+                gapSize={10}
+                discrete={false}
+                swatches={false}
+                autoResetSlider={true}
+                onColorChangeComplete={(color) => {setColor(color)}}
+            />}
+          </View>
+          <View style={styles.rowContainer}>
+            <Text style={[styles.buttonText, {color: wColor}]}>Color</Text>
           </View>
           <View style={styles.rowContainer}>
             {loadingFilter && <Progress.Bar width={350} indeterminate={loadingFilter}/>}
