@@ -402,6 +402,8 @@ export default function ImagePickerExample() {
                 discrete={false}
                 swatches={false}
                 autoResetSlider={true}
+                shadeWheelThumb={false}
+                shadeSliderThumb={true}
                 onColorChangeComplete={(color) => {setColor(color)}}
             />}
           </View>

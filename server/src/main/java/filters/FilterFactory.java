@@ -31,7 +31,7 @@ public class FilterFactory {
             case "bright":
                 return new ColorMod(0xFFFFFF, intensity);
             case "sat":
-                return new Saturate(intensity);
+                return new Saturate(0x808080, intensity);
 
             case "red":
                 return new ColorMod(0xFF0000, intensity);
@@ -46,7 +46,7 @@ public class FilterFactory {
             case "yellow":
                 return new ColorMod(0xFFFF00, intensity);
             case "c":
-                return new ColorMod(color, intensity);
+                return new Saturate(color, -intensity);
 
             case "box":
                 return new BoxBlur(intensity);

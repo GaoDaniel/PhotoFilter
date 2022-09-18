@@ -48,6 +48,7 @@ public class SparkServer {
             } catch (Exception e) {
                 Spark.halt(501, "bad color format");
             }
+            System.out.printf("%x\n", color);
 
             if (base64 == null || filter == null) Spark.halt(502, "missing one of base64 or filter");
             // create filter
