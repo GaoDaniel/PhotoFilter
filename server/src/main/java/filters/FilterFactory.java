@@ -29,24 +29,11 @@ public class FilterFactory {
             case "ansi":
                 return new Asciify(SparkServer.asciis, true);
             case "bright":
-                return new ColorMod(0xFFFFFF, intensity);
+                return new Brightness(intensity);
             case "sat":
                 return new Saturate(0x808080, intensity);
-
-            case "red":
-                return new ColorMod(0xFF0000, intensity);
-            case "green":
-                return new ColorMod(0x00FF00, intensity);
-            case "blue":
-                return new ColorMod(0x0000FF, intensity);
-            case "cyan":
-                return new ColorMod(0x00FFFF, intensity);
-            case "magenta":
-                return new ColorMod(0xFF00FF, intensity);
-            case "yellow":
-                return new ColorMod(0xFFFF00, intensity);
-            case "c":
-                return new Saturate(color, -intensity);
+            case "color":
+                return new ColorMod(color);
 
             case "box":
                 return new BoxBlur(intensity);

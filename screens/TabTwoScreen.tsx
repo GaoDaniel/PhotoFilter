@@ -41,13 +41,7 @@ export default function ImagePickerExample() {
     {label: 'Invert', value: 'invert', parent: 'colors'},
     {label: 'Grayscale', value: 'gray', parent: 'colors'},
     {label: 'Black and White', value: 'bw', parent: 'colors'},
-    {label: 'Red', value: 'red', parent: 'colors'},
-    {label: 'Green', value: 'green', parent: 'colors'},
-    {label: 'Blue', value: 'blue', parent: 'colors'},
-    {label: 'Cyan', value: 'cyan', parent: 'colors'},
-    {label: 'Magenta', value: 'magenta', parent: 'colors'},
-    {label: 'Yellow', value: 'yellow', parent: 'colors'},
-    {label: 'Color Mod', value: 'c', parent: 'colors'},
+    {label: 'Color', value: 'color', parent: 'colors'},
 
     {label: 'Funny', value: 'funny'},
     {label: 'Emojify', value: 'emoji', parent: 'funny'},
@@ -74,7 +68,7 @@ export default function ImagePickerExample() {
   ]);
 
   const sliderFilters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'bright', 'sat', 'red', 'green',
-      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner', 'bw', 'c']);
+      'blue', 'cyan', 'magenta', 'yellow', 'test1', 'test2', 'test3', 'dom', 'outliner', 'bw']);
   const zto100Filters : Set<String> = new Set<String>(['box', 'gauss', 'sharp', 'test1', 'test2', 'test3']);
 
   // Slider state
@@ -394,25 +388,25 @@ export default function ImagePickerExample() {
               <Text style={styles.buttonText}>Apply Filter</Text>
             </TouchableOpacity>
           </View>
+
           <View style={styles.rowContainer}>
-            {valueF == 'c' && 
+            {loadingFilter && <Progress.Bar width={350} indeterminate={loadingFilter}/>}
+          </View>
+
+          <View style={styles.rowContainer}>
+            {valueF == 'color' &&
               <ColorPicker
                 sliderSize={30}
                 gapSize={10}
                 discrete={false}
                 swatches={false}
-                autoResetSlider={true}
+                autoResetSlider={false}
                 shadeWheelThumb={false}
                 shadeSliderThumb={true}
                 onColorChangeComplete={(color) => {setColor(color)}}
             />}
           </View>
-          <View style={styles.rowContainer}>
-            <Text style={[styles.buttonText, {color: wColor}]}>Color</Text>
-          </View>
-          <View style={styles.rowContainer}>
-            {loadingFilter && <Progress.Bar width={350} indeterminate={loadingFilter}/>}
-          </View>
+
           <View style={styles.rowContainer}>
             {sliderFilters.has(valueF) &&
               <Slider style={[styles.button, {flex:5}]}
