@@ -12,10 +12,11 @@ import { FlipType } from 'expo-image-manipulator';
 import uploadToAnonymousFilesAsync from 'anonymous-files';
 import Slider from '@react-native-community/slider';
 import ColorPicker from 'react-native-wheel-color-picker';
+import Navigation from '../navigation';
 
 const { manifest } = Constants;
 
-export default function ImagePickerExample() {
+export default function PhotoFilter({navigation}) {
   const platform: string = Platform.OS;
   const [loadingSave, setLoadingSave] = useState<boolean>(false);
   const [loadingFilter, setLoadingFilter] = useState<boolean>(false);
@@ -457,9 +458,14 @@ export default function ImagePickerExample() {
                 tickIconStyle={{ width: 20, height: 20}}
             />
           </View>
+          <TouchableOpacity
+            onPress={() => {navigation.navigate('Settings', {param: 'idk send some info'})}}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Settings</Text>
+          </TouchableOpacity>
         </ScrollView>
     </View>
-
   );
 }
 

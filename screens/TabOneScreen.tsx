@@ -1,27 +1,15 @@
 import * as React from 'react';
 import {useState}  from 'react';
 import {StyleSheet, SafeAreaView, View, Image, ScrollView} from 'react-native';
-import {Camera, CameraPermissionStatus, useCameraDevices} from 'react-native-vision-camera';
 import { Text } from '../components/Themed';
 
-export default function TabOneScreen() {
-  /*
-  const devices = useCameraDevices();
-  const device = devices.back;
-  const [active, setActive] = useState(false);
+export default function Settings({route, navigation}) {
 
-  let openCamera = async () => {
-    let permissionResult = await Camera.requestCameraPermission();
+  const {param} = route.params;
 
-    if (permissionResult != 'authorized') {
-      return;
-    }
-    setActive(true);
-  }
-  */
   return(
     <View style={styles.container}>
-      <Text> Trying to use react-native-vision-camera but something bad </Text>
+      <Text style={styles.buttonText}> {JSON.stringify(param)} </Text>
     </View>
   )
 }
@@ -40,5 +28,10 @@ const styles = StyleSheet.create({
   image: {
     marginVertical: 24,
     alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 20,
+    color: 'black',
+    flex: 1
   },
 });
