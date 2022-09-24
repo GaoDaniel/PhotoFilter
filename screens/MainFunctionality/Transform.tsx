@@ -1,6 +1,6 @@
 import {Image, View, TouchableOpacity} from 'react-native';
 import React, {useState} from 'react';
-import {styles} from "./TabTwoScreen";
+import {styles} from "../TabTwoScreen";
 import * as ImageManipulator from "expo-image-manipulator";
 import {FlipType} from "expo-image-manipulator";
 import * as Progress from "react-native-progress";
@@ -40,7 +40,7 @@ export default function Transform(props: { callback: (b64Result: string) => void
           }}
           style={props.disabled || loadingTransform ? styles.disabledButton : styles.button}
           disabled={props.disabled || loadingTransform}>
-          <Image source={require('../assets/images/ccwRot.png')}
+          <Image source={require('../../assets/images/ccwRot.png')}
                  style={[styles.buttonImage, {width: 25, height: 25}]}/>
         </TouchableOpacity>
         <TouchableOpacity
@@ -49,7 +49,7 @@ export default function Transform(props: { callback: (b64Result: string) => void
           }}
           style={props.disabled ? styles.disabledButton : styles.button}
           disabled={props.disabled}>
-          <Image source={require('../assets/images/cwRot.png')}
+          <Image source={require('../../assets/images/cwRot.png')}
                  style={[styles.buttonImage, {width: 25, height: 25}]}/>
         </TouchableOpacity>
         <TouchableOpacity
@@ -58,7 +58,7 @@ export default function Transform(props: { callback: (b64Result: string) => void
           }}
           style={props.disabled ? styles.disabledButton : styles.button}
           disabled={props.disabled}>
-          <Image source={require('../assets/images/vflip.png')}
+          <Image source={require('../../assets/images/vflip.png')}
                  style={[styles.buttonImage, {width: 25, height: 25}]}/>
         </TouchableOpacity>
         <TouchableOpacity
@@ -67,7 +67,7 @@ export default function Transform(props: { callback: (b64Result: string) => void
           }}
           style={props.disabled ? styles.disabledButton : styles.button}
           disabled={props.disabled}>
-          <Image source={require('../assets/images/hflip.png')}
+          <Image source={require('../../assets/images/hflip.png')}
                  style={[styles.buttonImage, {width: 25, height: 25}]}/>
         </TouchableOpacity>
 

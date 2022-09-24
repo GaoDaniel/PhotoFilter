@@ -1,10 +1,10 @@
 import React, {useState} from 'react';
 import {Image, View, StyleSheet, ScrollView, Alert, Platform} from 'react-native';
 
-import ImageUpload from './ImageUpload';
-import Options from "./Options";
-import Transform from "./Transform";
-import Filter from "./Filter";
+import ImageUpload from './MainFunctionality/ImageUpload';
+import Options from "./MainFunctionality/Options";
+import Transform from "./MainFunctionality/Transform";
+import Filter from "./MainFunctionality/Filter";
 
 export default function PhotoFilter() {
   const platform: string = Platform.OS;
@@ -47,7 +47,7 @@ export default function PhotoFilter() {
     setUndone(undone.slice(0, undone.length - 1));
   }
 
-
+  // helper image upload method
   function ImageUploadCallback(b64Result: string) {
     setOriginIndex([...originIndex, b64.length]);
     setImage(b64Result);
@@ -78,10 +78,12 @@ export default function PhotoFilter() {
                  disRestore={b64.length === 0 || b64[originIndex[originIndex.length - 1]] === b64[b64.length - 1]}
                  curr={b64[b64.length - 1]} platform={platform}/>
 
-        <View style={styles.imageContainer}>
-          {b64[b64.length - 1] !== '' &&
-              <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}}
-                     style={[styles.image]}/>}
+        <View style={styles.rowContainer}>
+          <View style={styles.imageContainer}>
+            {b64[b64.length - 1] !== '' &&
+                <Image source={{uri: 'data:image/jpeg;base64,' + b64[b64.length - 1]}}
+                       style={[styles.image]}/>}
+          </View>
         </View>
 
         <Transform callback={setImage} disabled={b64.length === 0} curr={b64[b64.length - 1]}/>

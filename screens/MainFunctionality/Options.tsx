@@ -1,6 +1,6 @@
 import {Image, View, TouchableOpacity} from 'react-native';
 import React, {useState} from 'react';
-import {styles} from "./TabTwoScreen";
+import {styles} from "../TabTwoScreen";
 import * as Progress from 'react-native-progress';
 import * as Sharing from "expo-sharing";
 import uploadToAnonymousFilesAsync from "anonymous-files";
@@ -80,31 +80,31 @@ export default function Options(
           onPress={download}
           style={props.disSave || loadingSave ? styles.disabledButton : styles.button}
           disabled={props.disSave || loadingSave}>
-          <Image source={require('../assets/images/download.png')} style={styles.buttonImage}/>
+          <Image source={require('../../assets/images/download.png')} style={styles.buttonImage}/>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={share}
           style={props.disSave || loadingSave ? styles.disabledButton : styles.button}
           disabled={props.disSave || loadingSave}>
-          <Image source={require('../assets/images/share.png')} style={styles.buttonImage}/>
+          <Image source={require('../../assets/images/share.png')} style={styles.buttonImage}/>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={props.undo}
           style={props.disUndo ? styles.disabledButton : styles.button}
           disabled={props.disUndo}>
-          <Image source={require('../assets/images/undo.png')} style={styles.buttonImage}/>
+          <Image source={require('../../assets/images/undo.png')} style={styles.buttonImage}/>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={props.redo}
           style={props.disRedo ? styles.disabledButton : styles.button}
           disabled={props.disRedo}>
-          <Image source={require('../assets/images/redo.png')} style={styles.buttonImage}/>
+          <Image source={require('../../assets/images/redo.png')} style={styles.buttonImage}/>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={props.restore}
           style={props.disRestore ? styles.disabledButton : styles.button}
           disabled={props.disRestore}>
-          <Image source={require('../assets/images/restore.png')} style={styles.buttonImage}/>
+          <Image source={require('../../assets/images/restore.png')} style={styles.buttonImage}/>
         </TouchableOpacity>
       </View>
       <View style={styles.rowContainer}>

@@ -37,7 +37,7 @@ export default function Navigation() {
 function RootNavigator() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Root" component={TabTwoScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PhotoFilter" component={TabTwoScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={TabOneScreen} options={{headerShown: true}} />
       <Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Oops!' }} />
       <Stack.Group screenOptions={{ presentation: 'modal' }}>

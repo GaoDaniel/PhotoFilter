@@ -1,6 +1,6 @@
 import {View, TouchableOpacity, Text} from 'react-native';
 import React, {useEffect, useState} from 'react';
-import {styles} from "./TabTwoScreen";
+import {styles} from "../TabTwoScreen";
 import * as Progress from 'react-native-progress';
 import ColorPicker from "react-native-wheel-color-picker";
 import Slider from "@react-native-community/slider";
@@ -11,6 +11,14 @@ const {manifest} = Constants;
 
 export default function Filter(
   props: { platform: string, curr: string, callback: (b64: string) => void, makeAlert: (s1: string, s2: string) => void }) {
+
+  // get domain of spark server (needed for connection from devices not running Spark server)
+  let mobileDomain: string;
+  if (manifest && typeof manifest.debuggerHost === 'string') {
+    mobileDomain = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
+      ? manifest.debuggerHost.split(`:`)[0].concat(`:4567`)
+      : `api.example.com`;
+  }
 
   // filter state
   const [openF, setOpen] = useState(false);
@@ -57,18 +65,11 @@ export default function Filter(
   const [wColor, setColor] = useState('#fff');
   const [loadingFilter, setLoadingFilter] = useState<boolean>(false);
 
-  // get domain of spark server (needed for connection from devices not running Spark server)
-  let mobileDomain: string;
-  if (manifest && typeof manifest.debuggerHost === 'string') {
-    mobileDomain = (typeof manifest.packagerOpts === `object`) && manifest.packagerOpts.dev
-      ? manifest.debuggerHost.split(`:`)[0].concat(`:4567`)
-      : `api.example.com`;
-  }
-
   /**
    * applies filter by calling Spark server
    */
   async function applyFilter() {
+    console.log(props.curr);
     setLoadingFilter(true);
     try {
       let domain = props.platform !== "web" ? mobileDomain : "localhost:4567";
@@ -103,9 +104,9 @@ export default function Filter(
       <View style={[styles.rowContainer]}>
         <TouchableOpacity
           onPress={applyFilter}
-          style={props.curr === null || valueF === '' || loadingFilter ?
+          style={props.curr === undefined || valueF === '' || loadingFilter ?
             styles.disabledButton : [styles.button, {backgroundColor: 'darkorchid'}]}
-          disabled={props.curr === null || valueF === '' || loadingFilter}>
+          disabled={props.curr === undefined || valueF === '' || loadingFilter}>
           <Text style={styles.buttonText}>Apply Filter</Text>
         </TouchableOpacity>
       </View>
@@ -141,7 +142,7 @@ export default function Filter(
                     minimumTrackTintColor="#000000"
                     maximumTrackTintColor="#000000"
                     thumbTintColor='magenta'
-                    disabled={props.curr === null || valueF === '' || loadingFilter}
+                    disabled={props.curr === undefined || valueF === '' || loadingFilter}
                     onSlidingComplete={setValueS}
                     tapToSeek={true}
             />}

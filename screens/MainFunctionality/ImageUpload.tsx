@@ -1,10 +1,11 @@
 import {Image, View, TouchableOpacity} from 'react-native';
 import React from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import {styles} from "./TabTwoScreen";
+import {styles} from "../TabTwoScreen";
 
 
 export default function ImageUpload(props: { makeAlert: (title: string, message: string) => void, callback: (res: string) => void }) {
+
   /**
    * Opens the camera roll on the device, alerting user if access is denied
    */
@@ -58,11 +59,11 @@ export default function ImageUpload(props: { makeAlert: (title: string, message:
   return (
     <View style={styles.rowContainer}>
       <TouchableOpacity onPress={openImagePickerAsync} style={styles.button}>
-        <Image source={require('../assets/images/selectImage.png')}
+        <Image source={require('../../assets/images/selectImage.png')}
                style={[styles.buttonImage, {width: 100, height: 50}]}/>
       </TouchableOpacity>
       <TouchableOpacity onPress={openCamera} style={styles.button}>
-        <Image source={require('../assets/images/takeImage.png')}
+        <Image source={require('../../assets/images/takeImage.png')}
                style={[styles.buttonImage, {width: 100, height: 50}]}/>
       </TouchableOpacity>
     </View>);
